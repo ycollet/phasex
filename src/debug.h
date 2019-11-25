@@ -29,7 +29,7 @@
 #include "phasex.h"
 
 
-#define DEBUG_MESSAGE_SIZE          256
+#define DEBUG_MESSAGE_SIZE          8192
 
 #define DEBUG_MESSAGE_POOL_SIZE     2048
 #define DEBUG_BUFFER_MASK           (DEBUG_MESSAGE_POOL_SIZE - 1)

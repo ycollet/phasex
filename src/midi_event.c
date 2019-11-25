@@ -26,7 +26,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <time.h>
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 #include <glib.h>
 #include "phasex.h"
 #include "timekeeping.h"

@@ -24,7 +24,7 @@
 #define _ALSA_SEQ_H_
 
 #include <pthread.h>
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 #include "phasex.h"
 #include "mididefs.h"
 

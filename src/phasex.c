@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <pthread.h>
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 #include "phasex.h"
 #include "config.h"
 #include "driver.h"
