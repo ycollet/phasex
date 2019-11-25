@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #define _PHASEX_JACK_H_
 
 #include <jack/jack.h>
+#include <glib.h>
 #include "phasex.h"
 
 
@@ -31,7 +32,6 @@ typedef struct jack_port_info {
 	jack_port_t             *port;
 	char                    *name;
 	char                    *type;
-	jack_port_type_id_t     type_id;
 	int                     connected;
 	short                   connect_request;
 	short                   disconnect_request;
@@ -41,16 +41,21 @@ typedef struct jack_port_info {
 
 extern jack_client_t        *jack_audio_client;
 
-extern pthread_mutex_t      sample_rate_mutex;
-extern pthread_cond_t       sample_rate_cond;
-
 extern jack_port_t          *midi_input_port;
-
-extern int                  jack_running;
 
 extern JACK_PORT_INFO       *jack_midi_ports;
 
+extern pthread_mutex_t      sample_rate_mutex;
+extern pthread_cond_t       sample_rate_cond;
+
+extern volatile gint        new_sample_rate;
+extern volatile gint        new_buffer_period_size;
+
+extern int                  buffer_size_changed;
 extern int                  jack_midi_ports_changed;
+extern int                  jack_running;
+
+extern char                 *jack_session_uuid;
 
 
 int jack_process_buffer_multi_out(jack_nframes_t nframes, void *UNUSED(arg));
@@ -66,6 +71,8 @@ int  jack_stop(void);
 void jack_restart(void);
 void jack_watchdog_cycle(void);
 void *jack_audio_thread(void *UNUSED(arg));
+
+char *jack_get_session_name_from_directory(const char *directory);
 
 
 #endif /* _PHASEX_JACK_H_ */

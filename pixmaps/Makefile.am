@@ -86,7 +86,7 @@ gtk_update_icon_cache = gtk-update-icon-cache -f -t
 
 
 update-icon-cache:
-	if test -z "$(DESTDIR)"; then \
+	@if test -z "$(DESTDIR)"; then \
 		if echo "${datadir}" | grep -q "_inst"; then \
 			rm -f $(DESTDIR)$(datadir)/icons/hicolor/icon-theme.cache; \
 		else \
@@ -138,12 +138,11 @@ uninstall-pixmaps:
 
 install-splash:
 	@mkdir -p $(DESTDIR)$(pkgdatadir)/pixmaps; \
-	$(INSTALL_DATA) $(srcdir)/$(splash_image_file) $(DESTDIR)$(datadir)/pixmaps/$(splash_image_file)
+	$(INSTALL_DATA) $(srcdir)/$(splash_image_file) $(DESTDIR)$(pkgdatadir)/pixmaps/$(splash_image_file)
 
 
 uninstall-splash:
-	@rm -f $(DESTDIR)$(datadir)/pixmaps/$(splash_image_file); \
-	rm -f $(DESTDIR)$(pkgdatadir)/pixmaps/$(splash_image_file)
+	@rm -f $(DESTDIR)$(pkgdatadir)/pixmaps/$(splash_image_file)
 
 
 install-data-local: install-pixmaps install-splash install-icons update-icon-cache
@@ -153,7 +152,7 @@ uninstall-local: uninstall-pixmaps uninstall-splash uninstall-icons update-icon-
 
 
 install-data-hook:
-	@mkdir -p $(DESTDIR)$(pxkdatadir)/pixmaps
+	@mkdir -p $(DESTDIR)$(pkgdatadir)/pixmaps
 
 
 uninstall-hook:

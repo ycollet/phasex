@@ -3,7 +3,7 @@ dnl # configure.ac
 dnl #
 dnl # PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
 dnl #
-dnl # Copyright (C) 2007-2012 William Weston <whw@linuxmail.org>
+dnl # Copyright (C) 2007-2013 William Weston <william.h.weston@gmail.com>
 dnl #
 dnl # PHASEX is free software: you can redistribute it and/or modify
 dnl # it under the terms of the GNU General Public License as published by
@@ -18,10 +18,9 @@ dnl #
 dnl # You should have received a copy of the GNU General Public License
 dnl # along with PHASEX.  If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT(PHASEX, 0.14.94)
-
+AC_INIT([PHASEX], m4_esyscmd_s([sh scripts/version-sh]))
 AC_CONFIG_AUX_DIR(scripts)
-AM_INIT_AUTOMAKE(0.10.0)
+AM_INIT_AUTOMAKE
 
 ###AM_MAINTAINER_MODE
 ###AM_ACLOCAL_INCLUDE(m4)
@@ -79,7 +78,7 @@ AC_DEFINE_UNQUOTED(GTKRC_DARK,           ["${ac_datadir}/themes/Phasex-Dark/gtk-
                                          [PHASEX Dark GTK Theme])
 AC_DEFINE_UNQUOTED(GTKRC_LIGHT,          ["${ac_datadir}/themes/Phasex-Light/gtk-2.0/gtkrc"],
                                          [PHASEX Light GTK Theme])
-AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT,    ["whw@linuxmail.org"],
+AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT,    ["william.h.weston@gmail.com"],
                                          [Address where bug reports should be sent])
 
 
@@ -186,6 +185,17 @@ PKG_CHECK_MODULES(JACK,
   AC_MSG_ERROR([need JACK >= 0.99.0])
 )
 AC_SUBST(JACK_CFLAGS)
+AC_CHECK_HEADERS([jack/session.h])
+AC_CHECK_HEADERS([jack/weakjack.h])
+AC_CHECK_LIB(jack, jack_set_port_rename_callback,
+  [AC_DEFINE_UNQUOTED(HAVE_JACK_SET_PORT_RENAME_CALLBACK, [1],
+  [libjack has jack_set_port_rename_callback().])])
+AC_CHECK_LIB(jack, jack_set_session_callback,
+  [AC_DEFINE_UNQUOTED(HAVE_JACK_SET_SESSION_CALLBACK, [1],
+  [libjack has jack_set_session_callback().])])
+AC_CHECK_LIB(jack, jack_set_latency_callback,
+  [AC_DEFINE_UNQUOTED(HAVE_JACK_SET_LATENCY_CALLBACK, [1],
+  [libjack has jack_set_latency_callback().])])
 
 # libsamplerate
 PKG_CHECK_MODULES(SAMPLERATE,
@@ -229,7 +239,7 @@ fi
 
 AM_CONDITIONAL(WITH_LASH, test x$without_lash != x1)
 
-# librt (for clock_gettime)
+# librt (for clock_gettime and clock_nanosleep)
 have_librt="no"
 found_librt="no"
 AC_ARG_WITH(librt,
@@ -334,7 +344,8 @@ AC_DEFINE_UNQUOTED(PHASEX_GCC_MINOR, [$gccminor], [Built with gcc minor version]
 CPU_POWER_LEVEL=2
 ARCH_OPT_CFLAGS=""
 ARCH_MATH_CFLAGS=""
-ARCH_BITS=`( file /bin/true | grep 'ELF 64-bit' > /dev/null && echo 64 ) || echo 32`
+ARCH_TRUE=`which true`
+ARCH_BITS=`( file $ARCH_TRUE | grep 'ELF 64-bit' > /dev/null && echo 64 ) || echo 32`
 
 WARNING=`echo "*"`
 case "$OPT_ARCH" in
@@ -456,6 +467,26 @@ case "$OPT_ARCH" in
 		ARCH_MATH_CFLAGS="-msse4a -mfpmath=sse"
 		ARCH_BITS=64
 		;;
+	"bdver1"|"bdver2")
+		CPU_POWER_LEVEL=3
+		if test "x$gccver" \< "x4.6.0"; then
+			ARCH_OPT_CFLAGS="-mtune=amdfam10 -march=amdfam10"
+		else
+			ARCH_OPT_CFLAGS="-mtune=$OPT_ARCH -march=$OPT_ARCH"
+		fi
+		ARCH_MATH_CFLAGS="-msse2 -msse3 -mssse3 -msse4a -msse4.1 -msse4.2 -mfpmath=sse"
+		ARCH_BITS=64
+		;;
+    "btver1")
+		CPU_POWER_LEVEL=3
+		if test "x$gccver" \< "x4.6.0"; then
+			ARCH_OPT_CFLAGS="-mtune=amdfam10 -march=amdfam10"
+		else
+			ARCH_OPT_CFLAGS="-mtune=$OPT_ARCH -march=$OPT_ARCH"
+		fi
+		ARCH_MATH_CFLAGS="-msse2 -msse3 -mssse3 -msse4a -mfpmath=sse"
+		ARCH_BITS=64
+		;;
 	"x86_64")
 		CPU_POWER_LEVEL=3
 		ARCH_OPT_CFLAGS="-mtune=generic"
@@ -482,6 +513,36 @@ case "$OPT_ARCH" in
 			ARCH_OPT_CFLAGS="-mtune=core2 -march=core2"
 		fi
 		ARCH_MATH_CFLAGS="-msse -msse2 -mssse3 -mfpmath=sse"
+		ARCH_BITS=64
+		;;
+	"corei7")
+		CPU_POWER_LEVEL=3
+		if test "x$gccver" \< "x4.6.0"; then
+			ARCH_OPT_CFLAGS="-mtune=core2 -march=core2"
+		else
+			ARCH_OPT_CFLAGS="-mtune=corei7 -march=corei7"
+		fi
+		ARCH_MATH_CFLAGS="-msse -msse2 -mssse3 -mssse3 -msse4.1 -msse4.2 -mfpmath=sse"
+		ARCH_BITS=64
+		;;
+	"corei7-avx")
+		CPU_POWER_LEVEL=3
+		if test "x$gccver" \< "x4.6.0"; then
+			ARCH_OPT_CFLAGS="-mtune=core2 -march=core2"
+		else
+			ARCH_OPT_CFLAGS="-mtune=corei7 -march=corei7"
+		fi
+		ARCH_MATH_CFLAGS="-msse -msse2 -mssse3 -mssse3 -msse4.1 -msse4.2 -mfpmath=sse"
+		ARCH_BITS=64
+		;;
+	"corei7-avx-i")
+		CPU_POWER_LEVEL=3
+		if test "x$gccver" \< "x4.6.0"; then
+			ARCH_OPT_CFLAGS="-mtune=core2 -march=core2"
+		else
+			ARCH_OPT_CFLAGS="-mtune=corei7 -march=corei7"
+		fi
+		ARCH_MATH_CFLAGS="-msse -msse2 -mssse3 -mssse3 -msse4.1 -msse4.2 -mfpmath=sse"
 		ARCH_BITS=64
 		;;
 	"amd64")
@@ -573,7 +634,7 @@ fi
 # Apply user-overridden PHASEX_CPU_POWER flag
 FORCE_CPU_POWER=0
 AC_ARG_ENABLE(cpu-power,
-	AC_HELP_STRING([--enable-cpu-power], [optimize sound quality for (1) low-, (2) medium-, or (3) high- powered CPU.]),
+	AC_HELP_STRING([--enable-cpu-power], [optimize sound quality for (1) low-, (2) medium-, (3) high- , or (4) over- powered CPU.]),
 	[FORCE_CPU_POWER="$enableval"])
 
 if test "x$FORCE_CPU_POWER" = "x1" || test "x$FORCE_CPU_POWER" = "x2" || test "x$FORCE_CPU_POWER" = "x3" || test "x$FORCE_CPU_POWER" = "x4"; then
@@ -585,15 +646,18 @@ fi
 case "$DEBUG_CFLAGS" in
 	"none")
 		DEBUG_CFLAGS=""
-		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O3 -ffast-math -fomit-frame-pointer -fsingle-precision-constant"
+#		OPT_CFLAGS="-pipe -Wall $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O3 -ffast-math -fomit-frame-pointer -fsingle-precision-constant"
+		OPT_CFLAGS="-pipe -Wall $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O3 -ffast-math -fomit-frame-pointer"
 		;;
 	"yes")
 		DEBUG_CFLAGS="-g"
-		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O2 -ffast-math -fsingle-precision-constant"
+#		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra -Werror=format-security $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O2 -ffast-math -fsingle-precision-constant"
+		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra -Werror=format-security $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -O2 -ffast-math"
 		;;
 	*)
 		DEBUG_CFLAGS="-g"
-		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -fsingle-precision-constant"
+#		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra -Werror=format-security $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS -fsingle-precision-constant"
+		OPT_CFLAGS="-pipe -Wall -Wcast-align -Wconversion -Wextra -Werror=format-security $ARCH_OPT_CFLAGS -m$ARCH_BITS $ARCH_MATH_CFLAGS"
 		;;
 esac
 
@@ -639,10 +703,11 @@ AC_CONFIG_FILES([
 	samples/Makefile
 	midimaps/Makefile
 	misc/Makefile
+	scripts/Makefile
 	phasex.spec
 	misc/phasex.desktop
 ])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 AC_OUTPUT
 
@@ -650,6 +715,8 @@ AC_OUTPUT
 # Display build info
 AC_MSG_NOTICE([
 ******************************************************************************
+*
+* Build configuration for phasex-$PACKAGE_VERSION:
 *
 * Optimized for arch: ... $OPT_ARCH (${ARCH_BITS}-bit)
 * CPU power level: ...... $CPU_POWER_LEVEL / 4
@@ -681,6 +748,5 @@ AC_MSG_NOTICE([
 *    make clean
 *    make
 *    make install
-*
 $WARNING
 ******************************************************************************])

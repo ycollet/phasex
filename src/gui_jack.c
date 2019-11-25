@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ on_jack_menu_activate(GtkMenuItem *UNUSED(parent_menu_item), gpointer UNUSED(dat
 	GtkWidget           *menu_item;
 
 	/* build JACK MIDI submenu */
-	if ((midi_driver == MIDI_DRIVER_JACK) && (jack_midi_ports != NULL)) {
+	if ((audio_driver == AUDIO_DRIVER_JACK) && (jack_midi_ports != NULL)) {
 		submenu = gtk_menu_new();
 		menu_item = NULL;
 		cur = jack_midi_ports;

@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "patch.h"
 #include "param.h"
 #include "midimap.h"
+#include "gui_main.h"
 
 #ifndef WITHOUT_LASH
 # include "lash.h"
@@ -436,7 +437,7 @@ wait_audio_start(void)
 {
 	if (audio_thread_func != NULL) {
 		pthread_mutex_lock(&audio_ready_mutex);
-		if (!midi_ready) {
+		if (!audio_ready) {
 			pthread_cond_wait(&audio_ready_cond, &audio_ready_mutex);
 		}
 		pthread_mutex_unlock(&audio_ready_mutex);
@@ -521,9 +522,15 @@ wait_engine_start(void)
 	int     i;
 
 	for (i = 0; i < MAX_PARTS; i++) {
-		while (g_atomic_int_get(&engine_ready[i]) == 0) {
-			usleep(125000);
+		//while (g_atomic_int_get(&engine_ready[i]) == 0) {
+		//	usleep(125000);
+		//}
+		/* wait until gtkui thread is ready */
+		pthread_mutex_lock(&engine_ready_mutex[i]);
+		if (!engine_ready[i]) {
+			pthread_cond_wait(&engine_ready_cond[i], &engine_ready_mutex[i]);
 		}
+		pthread_mutex_unlock(&engine_ready_mutex[i]);
 	}
 }
 
@@ -656,9 +663,7 @@ phasex_watchdog(void)
 			audio_stopped = 0;
 			start_audio();
 			wait_audio_start();
-			if ((gtkui_thread_p != 0) &&
-			    (config_dialog != NULL) &&
-			    (audio_status_label != NULL)) {
+			if (gtkui_ready && (config_dialog != NULL) && (audio_status_label != NULL)) {
 				query_audio_driver_status(audio_driver_status_msg);
 				gtk_label_set_text(GTK_LABEL(audio_status_label), audio_driver_status_msg);
 			}
@@ -669,10 +674,8 @@ phasex_watchdog(void)
 			start_midi();
 			wait_midi_start();
 		}
-		if (config_changed &&
-		    !engine_stopped && !audio_stopped && !midi_stopped &&
-		    (audio_driver != AUDIO_DRIVER_NONE) &&
-		    (midi_driver != MIDI_DRIVER_NONE)) {
+		if (config_changed && !engine_stopped && !audio_stopped && !midi_stopped &&
+		    (audio_driver != AUDIO_DRIVER_NONE) && (midi_driver != MIDI_DRIVER_NONE)) {
 			config_changed = 0;
 			save_settings(NULL);
 		}
@@ -692,8 +695,6 @@ scan_audio_and_midi(void)
 	ALSA_SEQ_INFO           *alsa_seq_info;
 	ALSA_SEQ_PORT           *seq_port_list;
 	ALSA_RAWMIDI_HW_INFO    *rawmidi_hw_list;
-
-	printf("\n");
 
 	/* scan for ALSA PCM capture and playback devices */
 #ifdef ENABLE_INPUTS
@@ -769,7 +770,6 @@ scan_audio_and_midi(void)
 		       seq_port_list->port_name);
 		seq_port_list = seq_port_list->next;
 	}
-	printf("\n");
 
 	alsa_seq_port_free(alsa_seq_info->capture_ports);
 	snd_seq_close(alsa_seq_info->seq);
@@ -780,8 +780,8 @@ scan_audio_and_midi(void)
 		alsa_rawmidi_hw_info_free(alsa_rawmidi_hw);
 	}
 	alsa_rawmidi_hw = alsa_rawmidi_get_hw_list();
-	if ((alsa_rawmidi_hw != NULL) && (debug_class & DEBUG_CLASS_RAW_MIDI)) {
-		printf("Found ALSA Raw MIDI hardware devices:\n");
+	if (alsa_rawmidi_hw != NULL) {
+		printf("\nFound ALSA Raw MIDI hardware devices:\n");
 		rawmidi_hw_list = alsa_rawmidi_hw;
 		while (rawmidi_hw_list != NULL) {
 			printf("    [%s]\t%s: %s: %s\n",

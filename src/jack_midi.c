@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,17 +58,42 @@ jack_process_midi(jack_nframes_t nframes)
 	unsigned char       channel;
 	unsigned short      e;
 	unsigned short      part_num;
-	unsigned int        index;
+	unsigned int        m_index;
 
 	out_event->state = EVENT_STATE_ALLOCATED;
 	out_event->next  = NULL;
+	memset(out_event->data, 0, 8);
 
 	/* JACK midi event cycles match audio buffer period processing cycles, so
 	   update the midi index now instead of waiting for the midi clock.  JACK
 	   midi does not need the clock per se, but currently the engine is
 	   synchronized to the midi, so it's easier to work with the existing
 	   system of synchronizing and updating buffer indices. */
-	index = get_midi_index();
+	m_index = get_midi_rx_index();
+
+	/* if buffer size has changed, queue resync event for engine threads */
+	if (buffer_size_changed) {
+		buffer_size_changed  = 0;
+		out_event->type      = MIDI_EVENT_RESYNC;
+		out_event->data[4]   = ((unsigned int)(buffer_size))       & 0xFF;
+		out_event->data[5]   = ((unsigned int)(buffer_size) >> 8)  & 0xFF;
+	}
+	if (sample_rate_changed) {
+		sample_rate_changed  = 0;
+		out_event->type      = MIDI_EVENT_RESYNC;
+		out_event->data[0]   = ((unsigned int)(sample_rate))       & 0xFF;
+		out_event->data[1]   = ((unsigned int)(sample_rate) >> 8)  & 0xFF;
+		out_event->data[2]   = ((unsigned int)(sample_rate) >> 16) & 0xFF;
+		out_event->data[3]   = ((unsigned int)(sample_rate) >> 24) & 0xFF;
+	}
+	if (out_event->type == MIDI_EVENT_RESYNC) {
+		PHASEX_DEBUG((DEBUG_CLASS_MIDI | DEBUG_CLASS_MIDI_TIMING),
+		             DEBUG_COLOR_YELLOW "<<<<<SYNC>>>>> " DEBUG_COLOR_DEFAULT);
+		for (part_num = 0; part_num < MAX_PARTS; part_num++) {
+			queue_midi_event(part_num, out_event, 0, m_index);
+		}
+		out_event->type      = MIDI_EVENT_NO_EVENT;
+	}
 
 	/* handle all events for this process cycle */
 	for (e = 0; e < num_events; e++) {
@@ -92,14 +117,14 @@ jack_process_midi(jack_nframes_t nframes)
 			for (part_num = 0; part_num < MAX_PARTS; part_num++) {
 				part = get_part(part_num);
 				if ((channel == part->midi_channel) || (part->midi_channel == 16)) {
-					queue_midi_event(part_num, out_event, in_event.time, index);
+					queue_midi_event(part_num, out_event, in_event.time, m_index);
 				}
 			}
 		}
 		/* handle other messages (sysex / clock / automation / etc) */
 		else {
 			type = * (in_event.buffer);
-			PHASEX_DEBUG(DEBUG_CLASS_JACK_MIDI,
+			PHASEX_DEBUG(DEBUG_CLASS_MIDI,
 			             "+++ jack_process_midi() received midi system message "
 			             "type 0x%02x\n", type);
 
@@ -115,13 +140,13 @@ jack_process_midi(jack_nframes_t nframes)
 			case MIDI_EVENT_SONG_SELECT:    // 0xF3
 				//out_event->byte2 = *(in_event.buffer + 1);
 				//out_event->byte3 = *(in_event.buffer + 2);
-				//queue_midi_event (part_num, out_event, in_event.time);
+				//queue_midi_event (part_num, out_event, in_event.time, m_index);
 				break;
 				/* 1 byte realtime messages */
 			case MIDI_EVENT_STOP:           // 0xFC
 			case MIDI_EVENT_SYSTEM_RESET:   // 0xFF
 				/* send stop and reset events to all queues */
-				queue_midi_realtime_event(ALL_PARTS, type, in_event.time, index);
+				queue_midi_realtime_event(ALL_PARTS, type, in_event.time, m_index);
 				break;
 				/* ignored 1-byte system and realtime messages */
 			case MIDI_EVENT_BUS_SELECT:     // 0xF5
@@ -145,7 +170,7 @@ jack_process_midi(jack_nframes_t nframes)
 	if (check_active_sensing_timeout() > 0) {
 		/* a real timeout has occurred when there are _no_ midi events. */
 		if (num_events == 0) {
-			queue_midi_realtime_event(ALL_PARTS, MIDI_EVENT_STOP, (nframes - 1), index);
+			queue_midi_realtime_event(ALL_PARTS, MIDI_EVENT_STOP, (nframes - 1), m_index);
 		}
 	}
 

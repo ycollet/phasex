@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2009 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2009 William Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,6 @@ void init_help(void);
 void display_param_help(int param_id);
 void display_phasex_help(void);
 void close_about_phasex_dialog(GtkWidget *UNUSED(dialog), gpointer UNUSED(data));
-//void close_about_phasex_dialog(GtkWidget *dialog);
 
 
 #endif /* _PHASEX_HELP_H_ */

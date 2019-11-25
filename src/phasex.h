@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #define ENABLE_DEBUG
 
 /* Set default cpu power level.  For most builds, this should be set with
-   '../configure --enable-cpu-power=X' where X is:
+     '../configure --enable-cpu-power=X' where X is:
    1 for the oldest, painfully slow dinosaurs.
    2 for older hardware still capable of running current linux distros.
    3 for the newer multi-core and other incredibly fast chips.
@@ -50,16 +50,19 @@
 
 /* Type to use for (almost) all floating point math. */
 #if (PHASEX_CPU_POWER == 4)
-# if (ARCH_BITS == 64))
+# if (ARCH_BITS == 64)
+#  define MATH_64_BIT
 typedef double sample_t;
 # else
 #  warn ***** Only 64-bit builds are supported with PHASEX_CPU_POWER == 4
 #  warn ***** Reverting to PHASEX_CPU_POWER == 3
 #  undef PHASEX_CPU_POWER
 #  define PHASEX_CPU_POWER 3
+#  define MATH_32_BIT
 typedef float sample_t;
 # endif
 #else
+#  define MATH_32_BIT
 typedef float sample_t;
 #endif
 
@@ -78,8 +81,8 @@ typedef float sample_t;
 
 /* Number of micro-tuning steps between halfsteps. */
 /* A value of 120 seems to provide good harmonics. */
-#define TUNING_RESOLUTION               120
-#define F_TUNING_RESOLUTION             120.0
+#define TUNING_RESOLUTION               1440
+#define F_TUNING_RESOLUTION             1440.0
 
 /* Default timer interval for visual parameter refresh (in msec). */
 #if (PHASEX_CPU_POWER == 1)
@@ -116,7 +119,7 @@ typedef float sample_t;
 # define F_FILTER_OVERSAMPLE            6.0
 #endif
 
-/* Number of samples for a single wave period in the osc wave table.
+/* Number of samples for a single wave period in the osc table.
    Larger values sound cleaner, but burn more memory.  Smaller values
    sound grittier, but burn less memory. On some CPUs, performance
    degrades with larger lookup tables.  Values with more small prime
@@ -126,16 +129,16 @@ typedef float sample_t;
    88200 96000 97200 98304 115200 129600 132300 144000 162000
    176400 */
 #if (PHASEX_CPU_POWER == 1)
-# define WAVEFORM_SIZE                  32400
-# define F_WAVEFORM_SIZE                32400.0
+# define WAVEFORM_SIZE                  30030
+# define F_WAVEFORM_SIZE                30030.0
 #endif
 #if (PHASEX_CPU_POWER == 2)
 # define WAVEFORM_SIZE                  32400
 # define F_WAVEFORM_SIZE                32400.0
 #endif
 #if (PHASEX_CPU_POWER == 3)
-# define WAVEFORM_SIZE                  50820
-# define F_WAVEFORM_SIZE                50820.0
+# define WAVEFORM_SIZE                  43890
+# define F_WAVEFORM_SIZE                43890.0
 #endif
 #if (PHASEX_CPU_POWER == 4)
 # define WAVEFORM_SIZE                  50820
@@ -164,13 +167,13 @@ typedef float sample_t;
 /* Total polyphony: As a general rule of thumb, this should be
    somewhat lower than one voice per 100 MHz CPU power.  YMMV. */
 #if (PHASEX_CPU_POWER == 1)
-# define DEFAULT_POLYPHONY              6
+# define DEFAULT_POLYPHONY              4
 #endif
 #if (PHASEX_CPU_POWER == 2)
-# define DEFAULT_POLYPHONY              8
+# define DEFAULT_POLYPHONY              6
 #endif
 #if (PHASEX_CPU_POWER == 3)
-# define DEFAULT_POLYPHONY              12
+# define DEFAULT_POLYPHONY              8
 #endif
 #if (PHASEX_CPU_POWER == 4)
 # define DEFAULT_POLYPHONY              12
@@ -210,9 +213,9 @@ typedef float sample_t;
 #define USER_SESSION_BANK_FILE          "sessionbank"
 #define USER_PATCHDUMP_FILE             "patchdump"
 #define USER_MIDIMAP_DUMP_FILE          "midimapdump"
-#define USER_SESSION_DUMP_DIR           "_current_"
+#define USER_SESSION_DUMP_DIR           "_autosave_"
 #define USER_CONFIG_FILE                "phasex.cfg"
-#define SYS_DEFAULT_PATCH               "default.phx"
+#define SYS_DEFAULT_PATCH               "phasex-default.phx"
 
 /* Default knob image directories. */
 #define DEFAULT_LIGHT_KNOB_DIR          "Light"
@@ -240,30 +243,30 @@ typedef float sample_t;
 /* Load sampled waveforms (juno*, vox*, and analog_sq) on startup. */
 #define ENABLE_SAMPLE_LOADING
 
-/* Per part DC rejection filter */
-//define ENABLE_DC_REJECTION_FILTER
-
 /* Audio output defaults, mostly for first startup w/ no config file.
    These options now can be set in config file and/or command line. */
 //define DEFAULT_AUDIO_DRIVER            AUDIO_DRIVER_ALSA_PCM
+//define DEFAULT_MIDI_DRIVER             MIDI_DRIVER_ALSA_SEQ
 #define DEFAULT_AUDIO_DRIVER            AUDIO_DRIVER_JACK
-#define DEFAULT_MIDI_DRIVER             MIDI_DRIVER_ALSA_SEQ
+#define DEFAULT_MIDI_DRIVER             MIDI_DRIVER_JACK
 
 /* Build with audio input code enabled (ALSA and JACK). */
 #define ENABLE_INPUTS
 
+/* JACK Options */
+#define ENABLE_JACK_LATENCY_CALLBACK
+
 /* Define ALSA_SCAN_SUBDEVICES to scan individual audio / MIDI
    subdevices.  In practice, almost everyone ignores the subdevices,
-   this should not be necessary. */
+   and this should not be necessary. */
 //define ALSA_SCAN_SUBDEVICES
 
 /* Phase of MIDI period for synchronizing audio buffer processing period starts. */
 #define DEFAULT_AUDIO_PHASE_LOCK        0.9375
 
 /* max number of samples to use in the 8 period ringbuffer. */
-/* must be a power of 2, and must handle at least 8 periods of >= 1024 */
+/* must be a power of 2, and must handle at least 8 periods of >= 2048 */
 #define PHASEX_MAX_BUFSIZE              16384   /* up to 8 periods of 2048 */
-#define DEFAULT_BUFFER_SIZE             (DEFAULT_BUFFER_PERIOD_SIZE * DEFAULT_BUFFER_PERIODS)
 #define DEFAULT_BUFFER_PERIOD_SIZE      256
 #define DEFAULT_BUFFER_PERIODS          8
 #define DEFAULT_LATENCY_PERIODS         2
@@ -299,6 +302,8 @@ typedef float sample_t;
    Config file and command line options are always supported! */
 #define ENABLE_CONFIG_DIALOG
 
+#define ENABLE_SPLASH_WINDOW
+//define MALLOC_WAVE_TABLE
 
 /*****************************************************************************
  *
@@ -308,7 +313,6 @@ typedef float sample_t;
 
 /* Incomplete features */
 //define NONSTANDARD_HARMONICS
-//define ENABLE_JACK_LATENCY_CALLBACK
 //define ENABLE_JACK_GRAPH_ORDER_CALLBACK
 
 /* Depracated features */
@@ -351,7 +355,7 @@ typedef float sample_t;
 #define SAMPLE_RATE_OVERSAMPLE          2
 
 /* Update NUM_WAVEFORMS after adding new waveforms */
-#define NUM_WAVEFORMS                   28
+#define NUM_WAVEFORMS                   30
 
 /* Maximum delay times, in samples, must be powers of 2, and large
    enough to function at all sample rates. */
@@ -374,7 +378,7 @@ typedef float sample_t;
  *
  *****************************************************************************/
 
-/* Insist that funtion arguments as USED, or UNUSED, if necessary */
+/* Insist that funtion arguments are USED or UNUSED, if necessary */
 #if defined(USED)
 #elif defined(__GNUC__)
 # define USED(x) x
@@ -398,6 +402,34 @@ typedef float sample_t;
 /* Number of elements in an array */
 #define NELEM(a)            ( sizeof(a) / sizeof((a)[0]) )
 
+/* 32-/64-bit math */
+#ifdef MATH_32_BIT
+# ifdef MATH_64_BIT
+#  undef MATH_64_BIT
+# endif
+# define MATH_SIN(x) sinf(x)
+# define MATH_COS(x) cosf(x)
+# define MATH_ABS(x) fabsf(x)
+# define MATH_EXP(x) expf(x)
+# define MATH_LOG(x) logf(x)
+# define MATH_SQRT(x) sqrtf(x)
+# define MATH_FLOOR(x) floorf(x)
+# define MATH_ATAN2(x) atan2f(x)
+#endif
+#ifdef MATH_64_BIT
+# ifdef MATH_32_BIT
+#  undef MATH_32_BIT
+# endif
+# define MATH_SIN(x) sin(x)
+# define MATH_COS(x) cos(x)
+# define MATH_ABS(x) fabs(x)
+# define MATH_EXP(x) exp(x)
+# define MATH_LOG(x) log(x)
+# define MATH_SQRT(x) sqrt(x)
+# define MATH_FLOOR(x) floor(x)
+# define MATH_ATAN2(x) atan2(x)
+#endif
+
 
 /*****************************************************************************
  *
@@ -405,9 +437,6 @@ typedef float sample_t;
  *
  *****************************************************************************/
 
-extern int debug;
-extern int debug_level;
-extern int phasex_instance;
 extern int pending_shutdown;
 
 extern pthread_t debug_thread_p;

@@ -192,8 +192,6 @@ MIDI improvements:
 
 * Add support for modwheel and generic high-res controllers.
 
-* Save part --> MIDI channel mapping with session and/or midimap.
-
 * Add MIDI Program Change option to select sessions with values >= 64;
 
 
@@ -209,7 +207,7 @@ JACK improvements:
 
 * Add JACK connection tracking to save session state.
 
-* Add JACK Session / server selection support.
+* Add JACK server selection support.
 
 
 ------------------------------------------------------------------------------

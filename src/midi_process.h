@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  * Copyright (C) 2010 Anton Kormakov <assault64@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
@@ -29,11 +29,10 @@
 
 extern int              vnum[MAX_PARTS];    /* round robin voice selectors */
 
-extern unsigned char    all_notes_off[MAX_PARTS];
 
-
-void init_midi_processor();
+void init_midi_processor(void);
 MIDI_EVENT *process_midi_event(MIDI_EVENT *event, unsigned int part_num);
+void process_midi_events(unsigned int m_index, unsigned int cycle_frame, unsigned int part_num);
 
 void process_note_on(MIDI_EVENT *event, unsigned int part_num);
 void process_note_off(MIDI_EVENT *event, unsigned int part_num);
@@ -48,6 +47,7 @@ void process_aftertouch(MIDI_EVENT *event, unsigned int part_num);
 void process_polypressure(MIDI_EVENT *event, unsigned int part_num);
 void param_midi_update(PARAM *param, int cc_val);
 void process_controller(MIDI_EVENT *event, unsigned int part_num);
+void process_parameter(MIDI_EVENT *event, unsigned int part_num);
 void process_pitchbend(MIDI_EVENT *event, unsigned int part_num);
 void process_program_change(MIDI_EVENT *event, unsigned int part_num);
 void process_phase_sync(MIDI_EVENT *event, unsigned int part_num);

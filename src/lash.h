@@ -5,7 +5,7 @@
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
  * Copyright (C) 2010 Anton Kormakov <assault64@gmail.com>
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,10 +31,7 @@
 
 extern lash_client_t    *lash_client;
 extern char             *lash_buffer;
-
 extern char             *lash_jackname;
-extern snd_seq_t        *lash_alsa_id;
-
 extern char             *lash_project_dir;
 extern char             *lash_project_name;
 
@@ -42,10 +39,7 @@ extern char             *lash_project_name;
 int  lash_client_init(int *argc, char ***argv);
 void lash_client_set_jack_name(jack_client_t *client);
 void lash_client_set_alsa_id(snd_seq_t *seq);
-void lash_read_patches(char *lash_path);
-void lash_save_patches(char *lash_path);
-void lash_set_project_info(char *lash_dir);
-void lash_set_phasex_session_name(void);
+char *lash_set_phasex_session_name(char *lash_dir);
 int  lash_poll_event(void);
 
 

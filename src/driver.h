@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,6 +91,8 @@ void wait_audio_start(void);
 void wait_midi_start(void);
 void wait_audio_stop(void);
 void wait_midi_stop(void);
+void wait_engine_start(void);
+void wait_engine_stop(void);
 void stop_audio(void);
 void stop_midi(void);
 void restart_audio(void);

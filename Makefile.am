@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src help pixmaps themes patches samples midimaps misc
+SUBDIRS = src help pixmaps themes patches samples midimaps misc scripts
 
 dist_doc_DATA = \
 	README \
@@ -10,7 +10,13 @@ dist_doc_DATA = \
 	ChangeLog \
 	TODO \
 	doc/ROADMAP \
-	doc/signal-diagram.txt
+	doc/signal-diagram.txt \
+	doc/release-checklist.txt
+
+#scriptsdir = scripts
+#
+#dist_scripts_SCRIPTS = \
+#	scripts/version-sh
 
 EXTRA_DIST = \
 	aclocal.m4 \
@@ -37,6 +43,16 @@ distclean-local:
 	rm -rf autom4te.cache
 
 
+phasex-$(PACKAGE_VERSION).tar.gz: dist
+
+
+phasex-version:
+	scripts/version-sh
+
+
+phasex.spec: phasex-version phasex.spec.in
+
+
 rpm: phasex-$(PACKAGE_VERSION).tar.gz phasex.spec
 	rpmbuild=$$(mktemp -d -t rpmbuild-phasex.XXXXXXX); src=$$(pwd); \
 	cp phasex-$(PACKAGE_VERSION).tar.gz "$$rpmbuild"; \
@@ -52,3 +68,4 @@ rpm: phasex-$(PACKAGE_VERSION).tar.gz phasex.spec
 	popd; \
 	mv "$$rpmbuild"/$$(arch)/*.rpm . &&  mv "$$rpmbuild"/*.src.rpm . && \
 		rm -rf "$$rpmbuild" && ls -1 *.rpm
+

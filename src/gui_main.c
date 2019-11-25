@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2007-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2007-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,12 +77,15 @@ GtkFileFilter       *file_filter_patches    = NULL;
 GtkFileFilter       *file_filter_map        = NULL;
 
 GtkWidget           *main_window            = NULL;
+#ifdef ENABLE_SPLASH_WINDOW
 GtkWidget           *splash_window          = NULL;
+#endif
 GtkWidget           *focus_widget           = NULL;
 
 GtkKnobAnim         *knob_anim              = NULL;
 GtkKnobAnim         *detent_knob_anim       = NULL;
 
+#ifdef ENABLE_SPLASH_WINDOW
 int                 alpha_support           = 0;
 int                 composite_support       = 0;
 
@@ -90,6 +93,7 @@ GdkPixbuf           *splash_pixbuf          = NULL;
 
 int                 splash_width            = 256;
 int                 splash_height           = 256;
+#endif
 
 int                 forced_quit             = 0;
 int                 gtkui_restarting        = 0;
@@ -106,7 +110,9 @@ void *
 gtkui_thread(void *UNUSED(arg))
 {
 	static int  once = 1;
+#ifdef ENABLE_SPLASH_WINDOW
 	GdkWindow   *window;
+#endif
 
 #ifdef ENABLE_NLS
 	bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
@@ -121,6 +127,7 @@ gtkui_thread(void *UNUSED(arg))
 		PHASEX_ERROR("gtk_init_check() failure!\n");
 	}
 
+#ifdef ENABLE_SPLASH_WINDOW
 	/* create splash screen and sit in gtk_main until the rest is ready */
 	create_splash_window();
 
@@ -134,6 +141,11 @@ gtkui_thread(void *UNUSED(arg))
 	}
 
 	PHASEX_DEBUG(DEBUG_CLASS_GUI, "Splash Done!\n");
+#else
+	while (!start_gui) {
+		usleep(125000);
+	}
+#endif
 
 	/* continue on with GUI setup */
 	file_filter_all         = NULL;
@@ -171,6 +183,7 @@ gtkui_thread(void *UNUSED(arg))
 	}
 	init_gui_patch();
 
+#ifdef ENABLE_SPLASH_WINDOW
 	/* allow main window to appear on top */
 #if GTK_CHECK_VERSION(2, 14, 0)
 	window = gtk_widget_get_window(splash_window);
@@ -182,6 +195,7 @@ gtkui_thread(void *UNUSED(arg))
 		gtk_main_iteration_do(FALSE);
 		usleep(1000);
 	}
+#endif
 
 	/* everything gets created from here */
 	create_main_window();
@@ -191,12 +205,6 @@ gtkui_thread(void *UNUSED(arg))
 	create_config_dialog();
 	close_config_dialog(main_window, (gpointer)((long int) config_is_open));
 #endif
-	create_patch_load_dialog();
-	create_patch_save_dialog();
-	create_midimap_load_dialog();
-	create_midimap_save_dialog();
-	create_session_load_dialog();
-	create_session_save_dialog();
 
 	/* add idle handler or timer callback to update widgets */
 	g_timeout_add_full(G_PRIORITY_HIGH_IDLE + 25,
@@ -218,8 +226,10 @@ gtkui_thread(void *UNUSED(arg))
 
 	update_param_sensitivities();
 
+#ifdef ENABLE_SPLASH_WINDOW
 	gtk_widget_destroy(splash_window);
 	splash_window = NULL;
+#endif
 
 	/* gtkui thread sits and runs here */
 	gtk_main();
@@ -230,8 +240,8 @@ gtkui_thread(void *UNUSED(arg))
 
 	/* cleanup and shut everything else down */
 	phasex_shutdown("Thank you for using PHASEX!\n"
-	                "(C) 1999-2012 William Weston <whw@linuxmail.org>\n"
-	                "Released under the GNU Public License, Ver. 2\n");
+	                "(C) 1999-2015 Willaim Weston <william.h.weston@gmail.com> and others.\n"
+	                "Released under the GNU Public License, Ver. 3\n");
 
 	/* end of gtkui thread */
 	return NULL;
@@ -479,9 +489,6 @@ gui_main_loop_iteration(gpointer data)
 			update_gui_session_name();
 		}
 
-		/* avoid simultaneous updates */
-		periodic_update_in_progress = 1;
-
 		/* Update widgets for up to 150 parameters per cycle
 		   go up to NUM_PARAMS + 1 to also get midi_channel in
 		   the extended params. */
@@ -489,13 +496,11 @@ gui_main_loop_iteration(gpointer data)
 			if (gtkui_restarting || (num_updated >= MAX_PARAMS)) {
 				break;
 			}
-			if (gp->param[param_num].updated) {
+			if (gp->param[param_num].updated > 0) {
 				update_gui_param(& (patch->param[param_num]));
 				num_updated++;
 			}
 		}
-
-		periodic_update_in_progress = 0;
 	}
 
 	/* check for changes in audio/midi connection lists */
@@ -533,7 +538,7 @@ gui_main_loop_iteration(gpointer data)
 	}
 	else if (counter == 100) {
 		counter = 0;
-		save_session(user_session_dump_dir, visible_sess_num);
+		save_session(user_session_dump_dir, visible_sess_num, 0);
 
 		/* TODO: allow feeding of new patches through
 		   /tmp/patchload-## or /tmp/sessionload */
@@ -605,6 +610,7 @@ handle_window_state_event(GtkWidget *UNUSED(widget), GdkEventWindowState *state)
 }
 
 
+#ifdef ENABLE_SPLASH_WINDOW
 /*****************************************************************************
  * splash_expose()
  *
@@ -793,6 +799,7 @@ create_splash_window(void)
 		cairo_destroy(cr);
 	}
 }
+#endif /* ENABLE_SPLASH_WINDOW */
 
 
 /*****************************************************************************

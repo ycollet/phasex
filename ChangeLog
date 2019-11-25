@@ -1,8 +1,89 @@
 [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]permient
 
 Changelog:
+2015-03-04 William <william.h.weston@gmail.com> - 0.14.98-dev
+	* Updated email address.
+	* Included Fons Adriaensen's DC filter patch.
+	* Fixed memory clobbering bug in sample resampling code.
+	* Applied Ralf's DC offset fix for sample normalization.
+	* Added analog sine oscillator w/ 2 bandlimiting levels.
+	* Fixed improper install of autoconf scripts.
+	* Removed -fsingle-precision-constant from OPT_CFLAGS.
+	* Created macros for wavetable lookup funtions.
+	* Added conditional compilaton for splash screen.
+	* Fixed portamento overshoot bug.
+	* Increased internal tuning resolution to 1440.
+	* Fixed gtkknob compilation warnings.
+	* Enabled JACK MIDI with JACK audio, regardless of midi_driver.
+	* Added MIDI_EVENT_RESYNC internal MIDI event type.
+	* Added new rt-safe thread resync via internal MIDI transport.
+	* Reworked startup and sync for threads, buffer indexes, and clock.
+	* Fixed startup segfault in set_midi_channel_for_part();
+	* Fixed improper GError (non)initilization in multiple places.
 
-2012-12-20 William Weston <whw@linuxmail.org> - 0.14.94
+
+2013-01-11 William Weston <william.h.weston@gmail.com> - 0.14.97
+	* Cleaned up pointer sign warning in queue_midi_event().
+	* Included (/usr)/bin/true configure.ac fix from Jörn Nettingsmeier.
+	* Included falktx's build patch for src/Makefile.am.
+	* Added synth-part to MIDI channel assignments to midimaps.
+	* Removed unused type_id from struct jack_port_info.
+	* Added proper detection and conditions for new JACK features.
+	* Reworked BPM handling and removed duplicated code.
+	* Fixed typo in pixmaps/Makefile.am.  (Adam Sampson)
+	* Implemented note-off instant release from attack and decay.
+	* Implemented round-robin voice assignment for mono-multikey.
+	* Fixed bug with assigning MIDI CC in GUI.
+	* Changed MIDI CC mapping event (now ctrl-middle-click).
+	* Changed depracated AM_CONFIG_HEADER to AC_CONFIG_HEADERS.
+	* Fixed FTBFS on systems w/o CLOCK_MONOTONIC_RAW.  (Adrian Knoth)
+	* Fixed crash and clock sync issues with changing jack buffer size.
+	* Consolidated gtkknob frame offset calculations.
+	* Added checks to prevent errors on JACK client close.
+	* Fixed usage of JACK stereo/multi menuitems for monotimbral builds.
+	* Fixed potential LASH client name bug when using ALSA MIDI.
+	* Added JACK latency recalculation when changing buffer_latency.
+	* Added git version tag tracking to build system.
+	* Changed default locale to "C" instead using env defaults.
+	* Fixed settings not saved on quit.
+	* Fixed new dirs/files not created bug in phasex-convert-patch.
+	* Fixed GUI param update race condition on updated flag.
+	* Fixed sporadic GUI param sensitivity update issue.
+	* Updated system synth-patches.
+	* Fixed FTBS with hardening flags enabled.  (Alessio Treglia)
+
+
+2012-12-28 William Weston <william.h.weston@gmail.com> - 0.14.96
+	* Added initial JACK Session support.
+	* Added sess dump dir skipping for Load Session dialog.
+	* Modified MIDI event queue to allow multiple writers.
+	* Removed get_/set_midi_event_state().
+	* Replaced all_notes_off[] flags with queued events.
+	* Implemented event queuing for GUI param changes.
+	* Renamed all variables simply named 'index'.
+	* Renamed wave_table to more appropriate osc_table.
+	* Fixed JACK MIDI port connection tracking.
+	* Fixed JACK latency callback calculations.
+	* Added managed mode w/ arg to load_/save_session().
+	* Cleaned up LASH session load/restore w/ new session mods.
+	* Updated configure.ac with new x86 CPU optimizations.
+	* Changed autosave sess name from _current_ to _autosave_.
+	* Enabled notes off on transport stop when JACK Transport is off.
+	* Removed redundant poll() call from rawmidi thread.
+	* Fixed MIDI controllers above max bug.
+	* Fixed oscillator scaling in osc_table.
+	* Completed work for pure 64-bit math (cpu power level 4).
+	* More cleanups and depracated code removal.
+
+
+2012-12-20 William Weston <william.h.weston@gmail.com> - 0.14.95
+	* Fixed initial patch / default patch issues.
+	* Updated GPL msg on exit to reference GPLv3 instead of v2.
+	* Added 16 new patches.
+	* Applied Anton Kormakov's steal-oldest-note fix.
+
+
+2012-12-20 William Weston <william.h.weston@gmail.com> - 0.14.94
 	* Major code overhaul since 0.12.
 	*   Renamed variables and functions to improve readability.
 	*   Rewrote comments where old comments no longer made sense.
@@ -51,7 +132,6 @@ Changelog:
 	*   Added clock support to ALSA Seq and ALSA Raw MIDI drivers.
 	*   Added clock support to ALSA PCM and JACK audio drivers.
 	*   Added audio MIDI phase lock setting for fine tuning.
-	*   Added commercial exception for licensing of timekeeping.[ch]
 	* GUI overhaul (work in progress).
 	*   Separated and cleaned up Synth and GUI callbacks.
 	*   Mostly separated GUI code from the rest (work in progress).
@@ -99,7 +179,7 @@ Changelog:
 	* Added PHASEX release checklist with git strategy.
 
 
-2009-10-12 William Weston <whw@linuxmail.org> - 0.12.0-rc1
+2009-10-12 William Weston <william.h.weston@gmail.com> - 0.12.0-rc1
 	* Rebuilt Makefile.am files (fixes uninstall and other issues).
 	* Cleaned up gcc version detection logic in configure.ac.
 	* Added --with-atom rpmbuild option in phasex.spec.in.
@@ -129,7 +209,7 @@ Changelog:
 	* Fixed osc and lfo freq when switching back to tempo sources.
 
 
-2009-09-22 William Weston <whw@linuxmail.org> - 0.12.0-pre1
+2009-09-22 William Weston <william.h.weston@gmail.com> - 0.12.0-pre1
 	* Rebuilt configure.ac (now uses autoconf and automake properly).
 	* Added --enable-32bit and --enable-cpu-power= options to configure.
 	* Enabled gcc version checking for selecting optimization flags.
@@ -161,7 +241,7 @@ Changelog:
 	* Cleaned up comments/style/whitespace all over.
 
 
-2009-09-14 William Weston <whw@linuxmail.org> - 0.12.0-beta
+2009-09-14 William Weston <william.h.weston@gmail.com> - 0.12.0-beta
 
 	* Fixed midimap load problem on startup.
 	* Added parameter locking.
@@ -220,7 +300,7 @@ Changelog:
 	* Reduced knob size to 32x28 in order to save space vertically.
 
 
-2007-08-13 William Weston <whw@linuxmail.org> - 0.11.1
+2007-08-13 William Weston <william.h.weston@gmail.com> - 0.11.1
 
 	* Applied Adam Sampson's patch fixing clobbered delay size and segfault.
 	* Added extra logic to sample rate handler to catch rate of 0 from JACK.
@@ -231,7 +311,7 @@ Changelog:
 	* Added new patches to default patchbank.
 
 
-2007-08-07 William Weston <whw@linuxmail.org> - 0.11.0
+2007-08-07 William Weston <william.h.weston@gmail.com> - 0.11.0
 
 	* Added patch file overwrite checking.
 	* Changed current patch to a dynamic pointer.
@@ -276,7 +356,7 @@ Changelog:
 	* Updated system patches to work better with filter and env tweaks.
 
 
-2007-05-23 William Weston <whw@linuxmail.org> - 0.10.3
+2007-05-23 William Weston <william.h.weston@gmail.com> - 0.10.3
 
 	* Removed install of phasex.desktop from Makefile.am.
 	* Fixed shutdown when initiated by JACK.
@@ -286,7 +366,7 @@ Changelog:
 	* Fixed race condition in threads by exiting vs. being cancelled.
 
 
-2007-05-19 William Weston <whw@linuxmail.org> - 0.10.2
+2007-05-19 William Weston <william.h.weston@gmail.com> - 0.10.2
 
 	* Fixed typos and omissions in parameter help file.
 	* Improved error handling and reporting in jack.c.
@@ -310,7 +390,7 @@ Changelog:
 	* Added project roadmap.
 
 
-2007-05-03 William Weston <whw@linuxmail.org> - 0.10.1
+2007-05-03 William Weston <william.h.weston@gmail.com> - 0.10.1
 
 	* Fixed delay buffer size crash bug.
 	* Rebuilt config.h from configure.ac (fixes undefined PHASEX_DIR).

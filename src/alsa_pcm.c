@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * Shamelessly adapded from test/pcm.c in alsa-lib-1.0.24.
  *   Copyright (C) Free Software Foundation, Inc.
@@ -611,7 +611,6 @@ alsa_pcm_init(void)
 	snd_pcm_sw_params_t     *playback_sw_params;
 	ALSA_PCM_INFO           *new_pcm_info;
 	static snd_output_t     *output                 = NULL;
-	unsigned int            i;
 	int                     err                     = 0;
 #if (SND_LIB_VERSION >= 65554)
 	int                     period_event            = 1;
@@ -787,16 +786,7 @@ alsa_pcm_init(void)
 	buffer_period_mask  = buffer_period_size - 1;
 	buffer_latency      = setting_buffer_latency * buffer_period_size;
 
-	for (i = 2; i < 24; i++) {
-		if (buffer_size == (1U << i)) {
-			buffer_size_bits = i;
-		}
-		if (buffer_period_size == (1U << i)) {
-			buffer_period_size_bits = i;
-		}
-	}
-
-	init_buffer_indices();
+	init_buffer_indices(0);
 	g_atomic_int_set(&need_increment, 0);
 
 	if (!alsa_pcm_can_mmap) {
@@ -952,7 +942,7 @@ alsa_pcm_watchdog_cycle(void)
 				break;
 			}
 			/* Ignore disconnect requests since they're controlled by radio
-			   buttons.  All that is needed to switch drivers properly here is
+			   buttons.  All that is needed to switch devices properly here is
 			   the connect request. */
 			cur = cur->next;
 		}
@@ -982,7 +972,7 @@ alsa_pcm_mix_parts(ALSA_PCM_INFO                *pcminfo,
 	unsigned char                   *playback_samples[alsa_pcm_playback_channels];
 	unsigned int                    playback_steps[alsa_pcm_playback_channels];
 	unsigned int                    chn;
-	unsigned int                    index;
+	unsigned int                    a_index;
 	unsigned int                    part_num;
 	unsigned int                    i;
 	unsigned int                    j;
@@ -999,9 +989,7 @@ alsa_pcm_mix_parts(ALSA_PCM_INFO                *pcminfo,
 	set_midi_cycle_time();
 
 	if (check_active_sensing_timeout() > 0) {
-		for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-			all_notes_off[part_num] = 1;
-		}
+		broadcast_notes_off();
 	}
 
 	/* verify and prepare the contents of areas */
@@ -1045,15 +1033,15 @@ alsa_pcm_mix_parts(ALSA_PCM_INFO                *pcminfo,
 	memset(output_buffer1, 0, sizeof(sample_t) * nframes);
 	memset(output_buffer2, 0, sizeof(sample_t) * nframes);
 
-	index = get_audio_index();
+	a_index = get_audio_index();
 
 	/* mix parts generated in engine threads */
 	for (part_num = 0; part_num < MAX_PARTS; part_num++) {
 		part = get_part(part_num);
 
 		for (j = 0; j < nframes; j++) {
-			output_buffer1[j] += part->output_buffer1[index + j];
-			output_buffer2[j] += part->output_buffer2[index + j];
+			output_buffer1[j] += part->output_buffer1[a_index + j];
+			output_buffer2[j] += part->output_buffer2[a_index + j];
 		}
 	}
 
@@ -1115,18 +1103,18 @@ alsa_pcm_mix_parts(ALSA_PCM_INFO                *pcminfo,
 			}
 
 			if (alsa_pcm_is_float) {
-				fval[0].i                = ival[0].i;
-				input_buffer1[index + j] = (sample_t) fval[0].f;
-				fval[1].i                = ival[1].i;
-				input_buffer2[index + j] = (sample_t) fval[1].f;
+				fval[0].i                  = ival[0].i;
+				input_buffer1[a_index + j] = (sample_t) fval[0].f;
+				fval[1].i                  = ival[1].i;
+				input_buffer2[a_index + j] = (sample_t) fval[1].f;
 			}
 			else {
 				if (alsa_pcm_is_unsigned) {
 					ival[0].u ^= 1U << (alsa_pcm_format_bits - 1U);
 					ival[1].u ^= 1U << (alsa_pcm_format_bits - 1U);
 				}
-				input_buffer1[index + j] = (sample_t) ival[0].i / f_alsa_pcm_max_sample_val;
-				input_buffer2[index + j] = (sample_t) ival[1].i / f_alsa_pcm_max_sample_val;
+				input_buffer1[a_index + j] = (sample_t) ival[0].i / f_alsa_pcm_max_sample_val;
+				input_buffer2[a_index + j] = (sample_t) ival[1].i / f_alsa_pcm_max_sample_val;
 			}
 		}
 	}
@@ -1206,7 +1194,6 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 	int             result;
 	int             nframes;
 	int             init;
-	unsigned int    part_num;
 #ifdef ENABLE_INPUTS__
 	struct pollfd   *capture_ufds;
 	int             capture_count;
@@ -1304,15 +1291,12 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 					return result;
 				}
 				init = 1;
-				/* decrement the need_increment counter, since this period is
-				   being skipped.  the xrun recovery is called elsewhere
+				/* Decrement the need_increment counter, since this period is
+				   being skipped.  The xrun recovery is called elsewhere
 				   within the audio cycle, so make sure we catch this after an
 				   xrun when we know that a cycle is being skipped. */
 				g_atomic_int_add(&need_increment, -1);
-				init_buffer_indices();
-				for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-					need_index_resync[part_num] = 1;
-				}
+				init_buffer_indices(1);
 				break;  /* skip one period */
 			}
 			if (snd_pcm_state(pcminfo->capture_handle) == SND_PCM_STATE_RUNNING) {
@@ -1323,8 +1307,8 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 			if (nframes == 0) {
 				break;
 			}
-			/* it is possible, that the initial buffer cannot store all data
-			   from the last period, so wait awhile */
+			/* It is possible, that the initial buffer cannot store all data
+			   from the last period, so wait awhile. */
 			if ((result = alsa_pcm_wait_for_poll(pcminfo->capture_handle, capture_ufds,
 			                                     (unsigned int) capture_count, 1)) < 0) {
 				if ((snd_pcm_state(pcminfo->capture_handle) == SND_PCM_STATE_XRUN) ||
@@ -1384,7 +1368,7 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 					return result;
 				}
 			}
-			/* mix phasex parts into the area buffers this must happen after
+			/* Mix phasex parts into the area buffers.  This must happen after
 			   the read and before the write! */
 			if ((result = alsa_pcm_mix_parts(pcminfo, 0, buffer_period_size, NULL, NULL)) < 0) {
 				free(playback_ufds);
@@ -1415,15 +1399,12 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 #endif
 					return result;
 				}
-				/* decrement the need_increment counter, since this period is
-				   being skipped.  the xrun recovery is called elsewhere
+				/* Decrement the need_increment counter, since this period is
+				   being skipped.  The xrun recovery is called elsewhere
 				   within the audio cycle, so make sure we catch this after an
 				   xrun when we know that a cycle is being skipped. */
 				g_atomic_int_add(&need_increment, -1);
-				init_buffer_indices();
-				for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-					need_index_resync[part_num] = 1;
-				}
+				init_buffer_indices(1);
 				break;  /* skip one period */
 			}
 			if (snd_pcm_state(pcminfo->playback_handle) == SND_PCM_STATE_RUNNING) {
@@ -1434,9 +1415,8 @@ alsa_pcm_write_and_poll_loop(ALSA_PCM_INFO *pcminfo)
 			if (nframes == 0) {
 				break;
 			}
-			/* it is possible, that the initial buffer
-			   cannot store all data from the last period,
-			   so wait awhile */
+			/* It is possible, that the initial buffer cannot store all data
+			   from the last period, so wait awhile. */
 			if ((result = alsa_pcm_wait_for_poll(pcminfo->playback_handle, playback_ufds,
 			                                     (unsigned int) playback_count, 0)) < 0) {
 				if ((snd_pcm_state(pcminfo->playback_handle) == SND_PCM_STATE_XRUN) ||
@@ -1607,9 +1587,8 @@ alsa_pcm_mmap_loop(ALSA_PCM_INFO *pcminfo)
 			}
 #endif
 
-			/* mix phasex parts into the area buffers this
-			   must happen after the read and before the
-			   write! */
+			/* Mix phasex parts into the area buffers.  This must happen after
+			   the read and before the write! */
 			if ((err = alsa_pcm_mix_parts(pcminfo,
 			                              playback_offset,
 			                              buffer_period_size,
@@ -1675,8 +1654,6 @@ alsa_pcm_mmap_loop(ALSA_PCM_INFO *pcminfo)
 void
 alsa_pcm_cleanup(void *UNUSED(arg))
 {
-	int                 part_num;
-
 	if (alsa_pcm_info != NULL) {
 #ifdef ENABLE_INPUTS
 		if (alsa_pcm_info->capture_handle != NULL) {
@@ -1723,11 +1700,7 @@ alsa_pcm_cleanup(void *UNUSED(arg))
 	}
 
 	init_engine_buffers();
-
-	init_buffer_indices();
-	for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-		need_index_resync[part_num] = 1;
-	}
+	init_buffer_indices(1);
 
 	audio_stopped  = 1;
 	audio_thread_p = 0;
@@ -1742,7 +1715,6 @@ alsa_pcm_thread(void *UNUSED(arg))
 {
 	struct sched_param  schedparam;
 	pthread_t           thread_id;
-	int                 part_num;
 
 	/* set realtime scheduling and priority */
 	thread_id = pthread_self();
@@ -1762,11 +1734,8 @@ alsa_pcm_thread(void *UNUSED(arg))
 	pthread_mutex_unlock(&audio_ready_mutex);
 
 	/* initialize buffer indices and set reference clock. */
-	init_buffer_indices();
-	for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-		need_index_resync[part_num] = 1;
-	}
-	start_midi_clock();
+	//init_buffer_indices(1);
+	//start_midi_clock();
 
 	/* MAIN LOOP: poll for audio and copy buffers */
 	if (alsa_pcm_can_mmap) {

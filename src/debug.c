@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,13 +33,11 @@
 DEBUG_RINGBUFFER    main_debug_queue;
 
 int                 debug       = 0;
-int                 debug_level = DEBUG_ERROR;
 unsigned long       debug_class = 0;
 
-DEBUG_CLASS         debug_class_list[19] = {
+DEBUG_CLASS         debug_class_list[16] = {
 	{ DEBUG_CLASS_NONE,           "none" },
 	{ DEBUG_CLASS_INIT,           "init" },
-	{ DEBUG_CLASS_MAIN,           "main" },
 	{ DEBUG_CLASS_GUI,            "gui" },
 	{ DEBUG_CLASS_PARAM,          "param" },
 	{ DEBUG_CLASS_RAW_MIDI,       "raw-midi" },
@@ -48,12 +46,10 @@ DEBUG_CLASS         debug_class_list[19] = {
 	{ DEBUG_CLASS_MIDI_EVENT,     "event" },
 	{ DEBUG_CLASS_MIDI_TIMING,    "timing" },
 	{ DEBUG_CLASS_AUDIO,          "audio" },
-	{ DEBUG_CLASS_JACK_AUDIO,     "jack-audio" },
 	{ DEBUG_CLASS_JACK_TRANSPORT, "jack-transport" },
-	{ DEBUG_CLASS_JACK_MIDI,      "jack-midi" },
 	{ DEBUG_CLASS_ENGINE,         "engine" },
 	{ DEBUG_CLASS_ENGINE_TIMING,  "engine-timing" },
-	{ DEBUG_CLASS_LASH,           "lash" },
+	{ DEBUG_CLASS_SESSION,        "session" },
 	{ DEBUG_CLASS_ALL,            "all" },
 	{ (~0UL),                     NULL }
 };
@@ -93,14 +89,14 @@ phasex_debug_thread(void *UNUSED(arg))
 #endif
 
 	while (!pending_shutdown) {
-		usleep(16000 >> PHASEX_CPU_POWER);
 		while (main_debug_queue.read_index !=
 		       g_atomic_int_get(& (main_debug_queue.write_index))) {
-			fprintf(stderr, (char *)(main_debug_queue.msgs
-			                         [main_debug_queue.read_index].msg));
+			fprintf(stderr, "%s",
+			        main_debug_queue.msgs[main_debug_queue.read_index].msg);
 			main_debug_queue.read_index =
 				(main_debug_queue.read_index + 1) & DEBUG_BUFFER_MASK;
 		}
+		usleep(16000 >> (PHASEX_CPU_POWER - 1));
 	}
 
 	pthread_exit(NULL);

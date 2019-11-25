@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ set_patch_from_bank(unsigned int part_num, unsigned int prog_num)
  * init_patch_bank()
  *****************************************************************************/
 void
-init_patch_bank(void)
+init_patch_bank(char *filename)
 {
 	PATCH           *patch;
 	int             part_num;
@@ -112,10 +112,11 @@ init_patch_bank(void)
 				patch->param[PARAM_MIDI_CHANNEL].info->cc_offset;
 		}
 		patch = set_active_patch(0, (unsigned int) part_num, 0);
+		read_patch(sys_default_patch, patch);
 	}
 
 	/* load the bank for all parts */
-	load_patch_bank();
+	load_patch_bank(filename);
 }
 
 
@@ -123,24 +124,34 @@ init_patch_bank(void)
  * load_patch_bank()
  *****************************************************************************/
 void
-load_patch_bank(void)
+load_patch_bank(char *filename)
 {
 	PATCH           *patch;
 	FILE            *bank_f;
+	char            *bank_file;
 	char            *p;
-	char            *filename;
+	char            *patch_file;
 	char            *tmpname;
 	char            buffer[256];
 	int             part_num    = 0;
 	int             prog        = 0;
 	unsigned int    line        = 0;
-	int             once        = 1;
+	static int      once        = 1;
 	int             result;
 
+	if (filename == NULL) {
+		bank_file = user_bank_file;
+	}
+	else {
+		bank_file = filename;
+	}
+
 	/* open the bank file */
-	if ((bank_f = fopen(user_bank_file, "rt")) == NULL) {
-		if ((bank_f = fopen(sys_bank_file, "rt")) == NULL) {
-			return;
+	if ((bank_f = fopen(bank_file, "rt")) == NULL) {
+		if ((bank_f = fopen(user_bank_file, "rt")) == NULL) {
+			if ((bank_f = fopen(sys_bank_file, "rt")) == NULL) {
+				return;
+			}
 		}
 	}
 
@@ -203,7 +214,7 @@ load_patch_bank(void)
 			while (get_next_token(buffer) != NULL);
 			continue;
 		}
-		if ((filename = strdup(tmpname)) == NULL) {
+		if ((patch_file = strdup(tmpname)) == NULL) {
 			phasex_shutdown("Out of memory!\n");
 		}
 
@@ -224,24 +235,29 @@ load_patch_bank(void)
 		result = 0;
 
 		/* handle bare patch names from 0.10.x versions */
-		if (filename[0] != '/') {
-			snprintf(buffer, sizeof(buffer), "%s/%s.phx", user_patch_dir, filename);
+		if (patch_file[0] != '/') {
+			snprintf(buffer, sizeof(buffer), "%s/%s.phx", user_patch_dir, patch_file);
 			result = read_patch(buffer, patch);
 			if (result != 0) {
-				snprintf(buffer, sizeof(buffer), "%s/%s.phx", PATCH_DIR, filename);
+				snprintf(buffer, sizeof(buffer), "%s/%s.phx", PATCH_DIR, patch_file);
 				result = read_patch(buffer, patch);
+			}
+			if (result != 0) {
+				PHASEX_WARN("Failed to load patch '%s''\n", buffer);
 			}
 		}
 
 		/* handle fully qualified filenames */
 		else {
-			result = read_patch(filename, patch);
+			result = read_patch(patch_file, patch);
 		}
 
 		/* initialize on failure and set name based on program number */
 		if (result != 0) {
 			if (read_patch(user_default_patch, patch) != 0) {
-				read_patch(sys_default_patch, patch);
+				if (read_patch(sys_default_patch, patch) != 0) {
+					PHASEX_WARN("Unable to load system default patch '%s'\n", sys_default_patch);
+				}
 			}
 			snprintf(buffer, sizeof(buffer), "Untitled-%04d", (prog + 1));
 			tmpname = patch->name;
@@ -256,7 +272,7 @@ load_patch_bank(void)
 		}
 
 		/* free up memory used to piece filename together */
-		free(filename);
+		free(patch_file);
 
 		/* Lock some global parameters after the first patch is read */
 		if (once) {
@@ -290,17 +306,25 @@ load_patch_bank(void)
  * save_patch_bank()
  *****************************************************************************/
 void
-save_patch_bank(void)
+save_patch_bank(char *filename)
 {
 	PATCH           *patch;
 	FILE            *bank_f;
+	char            *bank_file;
 	unsigned int    part_num;
 	unsigned int    prog;
 
+	if (filename == NULL) {
+		bank_file = user_bank_file;
+	}
+	else {
+		bank_file = filename;
+	}
+
 	/* open the bank file */
-	if ((bank_f = fopen(user_bank_file, "wt")) == NULL) {
+	if ((bank_f = fopen(bank_file, "wt")) == NULL) {
 		PHASEX_ERROR("Error opening bank file %s for write: %s\n",
-		             user_bank_file, strerror(errno));
+		             bank_file, strerror(errno));
 		return;
 	}
 

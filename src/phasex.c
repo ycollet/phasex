@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@
 
 /* command line options */
 #define HAS_ARG     1
-#define NUM_OPTS    (25 + 1)
+#define NUM_OPTS    (27 + 1)
 static struct option long_opts[] = {
 	{ "config-file",     HAS_ARG, NULL, 'c' },
 	{ "audio-driver",    HAS_ARG, NULL, 'A' },
@@ -79,6 +79,8 @@ static struct option long_opts[] = {
 	{ "bpm",             HAS_ARG, NULL, 'b' },
 	{ "tuning",          HAS_ARG, NULL, 't' },
 	{ "debug",           HAS_ARG, NULL, 'd' },
+	{ "session-dir",     HAS_ARG, NULL, 'D' },
+	{ "uuid",            HAS_ARG, NULL, 'u' },
 	{ "undersample",     0,       NULL, 'U' },
 	{ "oversample",      0,       NULL, 'O' },
 	{ "fullscreen",      0,       NULL, 'f' },
@@ -154,6 +156,8 @@ showusage(char *argvzero)
 	printf("  -O, --oversample       Use double the sample rate for internal math.\n");
 	printf("  -U, --undersample      Use half the sample rate for internal math.\n");
 	printf("  -G, --no-gui           Run PHASEX without starting the GUI.\n");
+	printf("  -D, --session-dir=     Set directory for loading initial session.\n");
+	printf("  -u, --uuid=            Set UUID for JACK Session handling.\n");
 	printf("  -d, --debug=           Debug class (Can be repeated. See debug.c).\n");
 	printf("  -l, --list             Scan and list audio and MIDI devices.\n");
 	printf("  -v, --version          Display version and exit.\n");
@@ -166,11 +170,11 @@ showusage(char *argvzero)
 	printf("  -L, --disable-lash     Disable LASH completely for the current session.\n\n");
 #endif
 	printf("[P]hase [H]armonic [A]dvanced [S]ynthesis [EX]permient ver. %s\n", PACKAGE_VERSION);
-	printf("  (C) 1999-2012 William Weston <whw@linuxmail.org>,\n");
+	printf("  (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>,\n");
 	printf("With contributions (C) 2010 Anton Kormakov <assault64@gmail.com>, and\n");
 	printf("  (C) 2007 Peter Shorthose <zenadsl6252@zen.co.uk>.\n");
 	printf("GtkKnob code (C) 1999 Tony Garnock-Jones, (C) 2004 Sean Bolton,\n");
-	printf("  (C) 2007 Peter Shorthose, and (C) 2007-2012 William Weston.\n");
+	printf("  (C) 2007 Peter Shorthose, and (C) 2007-2015 Willaim Weston.\n");
 	printf("Distributed under the terms of the GNU GENERAL Public License, Version 3.\n");
 	printf("  (See AUTHORS, LICENSE, and GPL-3.0.txt for details.)\n");
 }
@@ -310,7 +314,7 @@ check_user_data_dirs(void)
 		if (found_old_patches) {
 			snprintf(cmd, sizeof(cmd), "%s/bin/phasex-convert-patch %s %s",
 			         CONFIG_PREFIX, old_patch_dir, user_patch_dir);
-			fprintf(stderr, "Found patch dir for PHASEX <= v0.12.0.  Converting:\n    %s\n", cmd);
+			fprintf(stderr, "Found patch dir for PHASEX <= v0.12.x.  Converting:\n    %s\n", cmd);
 			if (system(cmd) == -1) {
 				fprintf(stderr, "%s/bin/phasex-convert-patch failed.\n", PHASEX_DIR);
 			}
@@ -387,7 +391,7 @@ phasex_shutdown(const char *msg)
 {
 	/* output message from caller */
 	if (msg != NULL) {
-		fprintf(stderr, msg);
+		fprintf(stderr, "%s", msg);
 	}
 
 	/* keep current midi port settings. */
@@ -399,9 +403,11 @@ phasex_shutdown(const char *msg)
 		case MIDI_DRIVER_RAW_ALSA:
 			setting_alsa_raw_midi_device = midi_port_name;
 			break;
+#ifdef ENABLE_RAWMIDI_GENERIC
 		case MIDI_DRIVER_RAW_GENERIC:
 			setting_generic_midi_device = midi_port_name;
 			break;
+#endif
 #ifdef ENABLE_RAWMIDI_OSS
 		case MIDI_DRIVER_RAW_OSS:
 			setting_oss_midi_device = midi_port_name;
@@ -411,9 +417,11 @@ phasex_shutdown(const char *msg)
 		default:
 			break;
 		}
+		setting_midi_driver = midi_driver;
 	}
 
 	/* TODO: be more thorough about gathering settings */
+	save_settings(NULL);
 
 	/* set the global shutdown flag */
 	pending_shutdown = 1;
@@ -454,10 +462,12 @@ int
 main(int argc, char **argv)
 {
 	char            opts[NUM_OPTS * 2 + 1];
+	char            filename[PATH_MAX];
 	struct option   *op;
 	char            *cp;
 	char            *p;
 	char            *patch_list             = NULL;
+	char            *init_session_dir       = NULL;
 	int             c;
 	unsigned int    i;
 	int             j;
@@ -465,7 +475,7 @@ main(int argc, char **argv)
 	unsigned int    bpm_override            = 0;
 	int             saved_errno;
 
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, "C");
 
 	if (check_other_phasex_instances()) {
 		fprintf(stderr, "Unable to start:  Another instance of phasex is already running.\n");
@@ -475,9 +485,7 @@ main(int argc, char **argv)
 	/* Start debug thread.  debug_class is not set until arguemnts are parsed,
 	   so use fprintf() until then. */
 	if ((ret = pthread_create(&debug_thread_p, NULL, &phasex_debug_thread, NULL)) != 0) {
-		if (debug) {
-			fprintf(stderr, "***** ERROR:  Unable to start debug thread.\n");
-		}
+		fprintf(stderr, "***** ERROR:  Unable to start debug thread.\n");
 	}
 
 	/* lock down memory (rt hates page faults) */
@@ -493,19 +501,16 @@ main(int argc, char **argv)
 		if ((strcmp(argv[j], "-L") == 0) || (strcmp(argv[j], "--disable-lash") == 0) ||
 		    (strcmp(argv[j], "-h") == 0) || (strcmp(argv[j], "--help") == 0) ||
 		    (strcmp(argv[j], "-l") == 0) || (strcmp(argv[j], "--list") == 0) ||
-		    (strcmp(argv[j], "-v") == 0) || (strcmp(argv[j], "--version") == 0)) {
+		    (strcmp(argv[j], "-v") == 0) || (strcmp(argv[j], "--version") == 0) ||
+		    (strcmp(argv[j], "-D") == 0) || (strcmp(argv[j], "--session-dir") == 0) ||
+		    (strcmp(argv[j], "-u") == 0) || (strcmp(argv[j], "--uuid") == 0)) {
 			lash_disabled = 1;
 			break;
 		}
 	}
 	if (!lash_disabled) {
-		ret = lash_client_init(&argc, &argv);
-		if (ret == 0) {
-			fprintf(stderr, "Main: LASH client started.\n");
+		if (lash_client_init(&argc, &argv) == 0) {
 			lash_poll_event();
-		}
-		else {
-			fprintf(stderr, "Unable to start lash client.\n");
 		}
 	}
 #endif
@@ -544,6 +549,9 @@ main(int argc, char **argv)
 
 		switch (c) {
 		case 'c':   /* config file */
+			if (config_file != NULL) {
+				free(config_file);
+			}
 			config_file = strdup(optarg);
 			break;
 		case 'A':   /* audio driver */
@@ -609,12 +617,7 @@ main(int argc, char **argv)
 			break;
 		case 't':   /* tuning frequency */
 			a4freq = atof(optarg);
-#if (ARCH_BITS == 32)
-			setting_tuning_freq = (float) a4freq;
-#endif
-#if (ARCH_BITS == 64)
-			setting_tuning_freq = atof(optarg);
-#endif
+			setting_tuning_freq = (sample_t) a4freq;
 			if ((a4freq < 220.0) || (a4freq > 880.0)) {
 				a4freq = A4FREQ;
 			}
@@ -628,7 +631,6 @@ main(int argc, char **argv)
 			break;
 		case 'd':   /* debug */
 			debug = 1;
-			debug_level = 2;
 			for (j = 0; debug_class_list[j].name != NULL; j++) {
 				if (strcmp(debug_class_list[j].name, optarg) == 0) {
 					debug_class |= debug_class_list[j].id;
@@ -655,6 +657,17 @@ main(int argc, char **argv)
 		case 'l':   /* list audio / midi devices */
 			scan_audio_and_midi();
 			return 0;
+		case 'D':   /* session directory */
+			init_session_dir = strdup(optarg);
+			if (config_file != NULL) {
+				free(config_file);
+			}
+			snprintf(filename, PATH_MAX, "%s/%s", init_session_dir, USER_CONFIG_FILE);
+			config_file = strdup(filename);
+			break;
+		case 'u':   /* jack session uuid */
+			jack_session_uuid = strdup(optarg);
+			break;
 		case '?':
 		case 'h':   /* help */
 		default:
@@ -748,8 +761,11 @@ main(int argc, char **argv)
 	init_rt_mutex(&sample_rate_mutex, 1);
 
 	/* initialize audio system based on selected driver */
+	//init_buffer_indices(1);
+	//start_midi_clock();
 	init_audio();
 	while (sample_rate == 0) {
+		usleep(125000);
 		init_audio();
 	}
 
@@ -769,11 +785,18 @@ main(int argc, char **argv)
 
 	/* Initialize and load patch bank */
 	init_patch_param_data();
-	init_patch_bank();
-	init_session_patch_bank();
+	if (init_session_dir == NULL) {
+		init_patch_bank(NULL);
+		init_session_bank(NULL);
+	}
+	else {
+		snprintf(filename, PATH_MAX, "%s/%s", init_session_dir, USER_BANK_FILE);
+		init_patch_bank(filename);
+		snprintf(filename, PATH_MAX, "%s/%s", init_session_dir, USER_BANK_FILE);
+		init_session_bank(filename);
+	}
 
-	/* initialize help system (only patch data structures are
-	   fully initialized) */
+	/* initialize help system (only after patch data is fully initialized) */
 	init_help();
 
 	/* handle initial patch(es) from command line */
@@ -787,8 +810,10 @@ main(int argc, char **argv)
 	/* override bpm from command line */
 	override_bpm(bpm_override);
 
-	/* run the callbacks for all the parameters */
-	run_param_callbacks(1);
+	/* use midimap from settings, if given */
+	if (setting_midimap_file != NULL) {
+		read_midimap(setting_midimap_file);
+	}
 
 	/* start the gui */
 	if (use_gui) {
@@ -802,21 +827,25 @@ main(int argc, char **argv)
 		pthread_mutex_unlock(&gtkui_ready_mutex);
 	}
 
-	/* use midimap from settings, if given */
-	/* wait until after gui is loaded before locking parameters */
-	if (setting_midimap_file != NULL) {
-		read_midimap(setting_midimap_file);
+	/* Load JACK session, if necessary. */
+	if (init_session_dir != NULL) {
+		load_session(init_session_dir, 0, 1);
+		p = jack_get_session_name_from_directory(init_session_dir);
+		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial JACK Session '%s'\n", p)
 	}
 
-	/* If we have already received a LASH Restore File event, then load the
-	   patches from the LASH project dir and set the session name. */
 #ifndef WITHOUT_LASH
-	lash_read_patches(lash_project_dir);
-	lash_set_phasex_session_name();
+	/* Load LASH session, if necessary. */
+	else if (lash_project_dir != NULL) {
+		load_session(lash_project_dir, 0, 1);
+		p = lash_set_phasex_session_name(NULL);
+		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial LASH Session '%s'\n", p);
+	}
 #endif
 
-	/* start engine threads */
-	start_engine_threads();
+	/* run the callbacks for all the parameters */
+	run_param_callbacks(1);
+
 
 	/* start the audio system, based on selected driver */
 	start_audio();
@@ -830,13 +859,23 @@ main(int argc, char **argv)
 	/* wait until midi thread is ready */
 	wait_midi_start();
 
+	/* start engine threads */
+	start_engine_threads();
+
+	/* wait until engine threads are ready */
+	wait_engine_start();
+
+	/* start midi clock now that everything is running and ready to go */
+	init_buffer_indices(1);
+	start_midi_clock();
+
 	/* Phasex watchdog handles restarting threads on config changes and
 	   runs driver supplied watchdog loop iterations. */
 	phasex_watchdog();
 
 	/* Save patch and session bank state for next time. */
-	save_patch_bank();
-	save_session_bank();
+	save_patch_bank(NULL);
+	save_session_bank(NULL);
 
 	/* Wait for threads created directly by PHASEX to terminate. */
 	if (use_gui) {

@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,18 @@
 #include "param.h"
 #include "param_parse.h"
 #include "bank.h"
+#include "bpm.h"
 #include "debug.h"
 
+
+/*****************************************************************************
+ * update_bpm()
+ *****************************************************************************/
+void
+update_bpm(PARAM *param)
+{
+	set_bpm(param, 0.0);
+}
 
 /*****************************************************************************
  * update_midi_channel()
@@ -498,7 +508,6 @@ void
 update_amp_sustain(PARAM *param)
 {
 	PATCH_STATE     *state  = param->patch->state;
-	PART            *part   = param->patch->part;
 	int             cc_val  = param->value.cc_val;
 	int             int_val = param->value.int_val;
 	VOICE           *voice;
@@ -512,13 +521,6 @@ update_amp_sustain(PARAM *param)
 			voice->amp_env_raw = state->amp_sustain;
 		}
 	}
-
-	part->env_buffer[4] = (1.0 - ((1.0 - state->amp_sustain) * 0.5));
-	part->env_buffer[5] = state->amp_sustain;
-	part->env_buffer[6] = state->amp_sustain;
-	part->env_buffer[7] = state->amp_sustain;
-	part->env_buffer[8] = state->amp_sustain;
-	part->env_buffer[9] = state->amp_sustain * 0.5;
 }
 
 /*****************************************************************************
@@ -876,7 +878,7 @@ update_osc_transpose(PARAM *param)
 			   need to be set properly here, not just this one. */
 			for (osc = 0; osc < NUM_OSCS; osc++) {
 				voice->osc_portamento[osc] =
-					4.0 * (freq_table[state->patch_tune_cc]
+					1.0 * (freq_table[state->patch_tune_cc]
 					       [256 + voice->osc_key[osc] + state->transpose +
 					        state->osc_transpose_cc[osc] - 64] -
 					       voice->osc_freq[osc]) /

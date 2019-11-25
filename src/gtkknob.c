@@ -8,7 +8,7 @@
  *
  * Modifications by Sean Bolton:     Copyright (C) 2004, 2008-2010
  * Modifications by Pete Shorthose:  Copyright (C) 2007
- * Modifications by William Weston:  Copyright (C) 2007-2008, 2012
+ * Modifications by William Weston:  Copyright (C) 2007-2008, 2012-2013
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 #define STATE_PRESSED       1
 #define STATE_DRAGGING      2
 
-static void gtk_knob_class_init(GtkKnobClass *klass);
+static void gtk_knob_class_init(GtkKnobClass *class);
 static void gtk_knob_init(GtkKnob *knob);
 static void gtk_knob_destroy(GtkObject *object);
 static void gtk_knob_realize(GtkWidget *widget);
@@ -67,7 +67,7 @@ static void gtk_knob_update(GtkKnob *knob);
 static void gtk_knob_adjustment_changed(GtkAdjustment *adjustment, gpointer data);
 static void gtk_knob_adjustment_value_changed(GtkAdjustment *adjustment, gpointer data);
 
-GError *gerror;
+GError *gerror = NULL;
 
 int knob_width[14]  = { 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, -1 };
 int knob_height[14] = { 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, -1 };
@@ -75,7 +75,7 @@ int knob_height[14] = { 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, -1 }
 
 /* Local data */
 
-static GtkWidgetClass *parent_class = NULL;
+static GtkWidgetClass *knob_parent_class = NULL;
 
 
 /*****************************************************************************
@@ -122,7 +122,7 @@ gtk_knob_class_init(GtkKnobClass *class)
 	object_class = (GtkObjectClass *) class;
 	widget_class = (GtkWidgetClass *) class;
 
-	parent_class = gtk_type_class(gtk_widget_get_type());
+	knob_parent_class = gtk_type_class(gtk_widget_get_type());
 
 	object_class->destroy = gtk_knob_destroy;
 
@@ -144,7 +144,6 @@ static void
 gtk_knob_init(GtkKnob *knob)
 {
 	knob->policy     = GTK_UPDATE_CONTINUOUS;
-	//    knob->policy     = GTK_UPDATE_DELAYED;
 	knob->state      = STATE_IDLE;
 	knob->saved_x    = 0;
 	knob->saved_y    = 0;
@@ -225,8 +224,8 @@ gtk_knob_destroy(GtkObject *object)
 		knob->timer = 0;
 	}
 
-	if (GTK_OBJECT_CLASS(parent_class)->destroy) {
-		(*GTK_OBJECT_CLASS(parent_class)->destroy)(object);
+	if (GTK_OBJECT_CLASS(knob_parent_class)->destroy) {
+		(*GTK_OBJECT_CLASS(knob_parent_class)->destroy)(object);
 	}
 }
 
@@ -237,8 +236,7 @@ gtk_knob_destroy(GtkObject *object)
 GtkAdjustment *
 gtk_knob_get_adjustment(GtkKnob *knob)
 {
-
-	g_return_val_if_fail(knob != NULL, NULL);
+	g_return_val_if_fail((knob != NULL), NULL);
 	g_return_val_if_fail(GTK_IS_KNOB(knob), NULL);
 
 	return knob->adjustment;
@@ -251,11 +249,31 @@ gtk_knob_get_adjustment(GtkKnob *knob)
 void
 gtk_knob_set_update_policy(GtkKnob *knob, GtkUpdateType policy)
 {
-
 	g_return_if_fail(knob != NULL);
 	g_return_if_fail(GTK_IS_KNOB(knob));
 
 	knob->policy = policy;
+}
+
+
+/*****************************************************************************
+ * gtk_knob_set_frame_offset()
+ *****************************************************************************/
+gint
+gtk_knob_set_frame_offset(GtkKnob *knob, gfloat value)
+{
+	g_return_val_if_fail((knob != NULL), 0);
+	g_return_val_if_fail(GTK_IS_KNOB(knob), 0);
+
+	if ((knob->anim != NULL) && (knob->adjustment != NULL)) {
+		knob->frame_offset = (int)((((gfloat)(knob->anim->width) /
+		                             (gfloat)(knob->anim->frame_width)) - 1) *
+		                           (value - knob->adjustment->lower) *
+		                           (1.0 / ((gfloat)(knob->adjustment->upper) -
+		                                   (gfloat)(knob->adjustment->lower)))
+		                           ) * knob->width;
+	}
+	return knob->frame_offset;
 }
 
 
@@ -267,7 +285,6 @@ gtk_knob_set_update_policy(GtkKnob *knob, GtkUpdateType policy)
 void
 gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment)
 {
-
 	g_return_if_fail(knob != NULL);
 	g_return_if_fail(GTK_IS_KNOB(knob));
 
@@ -296,16 +313,7 @@ gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment)
 	knob->old_lower = (gfloat) adjustment->lower;
 	knob->old_upper = (gfloat) adjustment->upper;
 
-	if (knob->anim != NULL) {
-		knob->frame_offset = (int)(
-		                           (((gfloat)(knob->anim->width) /
-		                             (gfloat)(knob->anim->frame_width)) - 1) *
-		                           (knob->adjustment->value - knob->adjustment->lower) *
-		                           (1.0 / ((gfloat)(adjustment->upper) -
-		                                   (gfloat)(adjustment->lower)))
-		                           ) * knob->width;
-	}
-
+	gtk_knob_set_frame_offset(knob, (gfloat) adjustment->value);
 	gtk_knob_update(knob);
 }
 
@@ -343,11 +351,9 @@ gtk_knob_realize(GtkWidget *widget)
 	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
 
 	widget->window = gdk_window_new(widget->parent->window, &attributes, attributes_mask);
-
-	widget->style = gtk_style_attach(widget->style, widget->window);
+	widget->style  = gtk_style_attach(widget->style, widget->window);
 
 	gdk_window_set_user_data(widget->window, widget);
-
 	gtk_style_set_background(widget->style, widget->window, GTK_STATE_NORMAL);
 
 	knob->mask_gc = gdk_gc_new(widget->window);
@@ -362,7 +368,6 @@ gtk_knob_realize(GtkWidget *widget)
 static void
 gtk_knob_size_request(GtkWidget *widget, GtkRequisition *requisition)
 {
-
 	g_return_if_fail(widget != NULL);
 	g_return_if_fail(GTK_IS_KNOB(widget));
 
@@ -602,7 +607,6 @@ gtk_knob_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 static gint
 gtk_knob_timer(GtkKnob *knob)
 {
-
 	g_return_val_if_fail(knob != NULL, FALSE);
 	g_return_val_if_fail(GTK_IS_KNOB(knob), FALSE);
 
@@ -665,17 +669,17 @@ gtk_knob_update_mouse(GtkKnob *knob, gint x, gint y, gboolean absolute)
 	old_value = (gfloat) knob->adjustment->value;
 
 	range = (gfloat)(knob->adjustment->upper - knob->adjustment->lower + 1.0);
-	scale = range * range / 16384.0;
+	scale = range * range / (gfloat)16384.0;
 
 	angle = atan2f((float)(-y + (knob->height >> 1) + 2), (float)(x - (knob->width >> 1) - 1));
 
 	if (absolute) {
 		/* map [1.25pi, -0.25pi] onto [0, 1] */
-		angle *= M_1_PI;
+		angle *= (gfloat)M_1_PI;
 		if (angle < -0.5) {
-			angle += 2.0;
+			angle += (gfloat)2.0;
 		}
-		new_value = 0.66666666666666666666 * (1.25 - angle);
+		new_value = (gfloat)0.66666666666666666666 * ((gfloat)1.25 - angle);
 		new_value *= (gfloat)(knob->adjustment->upper - knob->adjustment->lower);
 		new_value += (gfloat) knob->adjustment->lower;
 	}
@@ -692,7 +696,7 @@ gtk_knob_update_mouse(GtkKnob *knob, gint x, gint y, gboolean absolute)
 
 	knob->adjustment->value = new_value;
 
-	if (floorf((float) knob->adjustment->value + 0.5) != floorf(old_value + 0.5)) {
+	if (floorf((float) knob->adjustment->value + (gfloat)0.5) != floorf(old_value + (gfloat)0.5)) {
 		gtk_knob_update_mouse_update(knob);
 		knob->saved_x = x;
 		knob->saved_y = y;
@@ -712,7 +716,7 @@ gtk_knob_update(GtkKnob *knob)
 	g_return_if_fail(GTK_IS_KNOB(knob));
 
 	if (knob->adjustment->step_increment == 1) {
-		new_value = floorf((float) knob->adjustment->value + 0.5);
+		new_value = floorf((float) knob->adjustment->value + (gfloat)0.5);
 	}
 	else {
 		new_value = (gfloat) knob->adjustment->value;
@@ -725,12 +729,7 @@ gtk_knob_update(GtkKnob *knob)
 		new_value = (gfloat) knob->adjustment->upper;
 	}
 
-	knob->frame_offset = (int)((((gfloat)(knob->anim->width) /
-	                             (gfloat)(knob->anim->frame_width)) - 1) *
-	                           (new_value - knob->adjustment->lower) *
-	                           (1.0 / ((gfloat)(knob->adjustment->upper) -
-	                                   (gfloat)(knob->adjustment->lower)))
-	                           ) * knob->width;
+	gtk_knob_set_frame_offset(knob, new_value);
 
 	if (new_value != knob->adjustment->value) {
 		knob->adjustment->value = new_value;
@@ -807,17 +806,11 @@ gtk_knob_set_animation(GtkKnob *knob, GtkKnobAnim *anim)
 		g_object_unref(G_OBJECT(knob->anim->pixbuf));
 	}
 	knob->anim   = (GtkKnobAnim *) anim;
-	g_object_ref(G_OBJECT(knob->anim->pixbuf));
 	knob->width  = anim->frame_width;
 	knob->height = anim->height;
-	if (knob->adjustment != NULL) {
-		knob->frame_offset = (int)((((gfloat)(knob->anim->width) /
-		                             (gfloat)(knob->anim->frame_width)) - 1) *
-		                           (knob->adjustment->value - knob->adjustment->lower) *
-		                           (1.0 / ((gfloat)(knob->adjustment->upper) -
-		                                   (gfloat)(knob->adjustment->lower)))
-		                           ) * knob->width;
-	}
+	gtk_knob_set_frame_offset(knob, (knob->adjustment == NULL) ?
+	                          (gfloat)0.0 : (gfloat) knob->adjustment->value);
+	g_object_ref(G_OBJECT(knob->anim->pixbuf));
 
 	if (GTK_WIDGET_REALIZED(knob)) {
 		gtk_widget_queue_resize(GTK_WIDGET(knob));
@@ -862,10 +855,18 @@ gtk_knob_animation_new_from_file_full(gchar *filename, gint frame_width,
 #if GTK_CHECK_VERSION(2, 10, 0)
 	if (!(anim->pixbuf = gdk_pixbuf_new_from_file_at_size(filename, width,
 	                                                      height, &gerror))) {
+		if (gerror != NULL) {
+			g_error_free(gerror);
+			gerror = NULL;
+		}
 		return NULL;
 	}
 #else
 	if (!(anim->pixbuf = gdk_pixbuf_new_from_file(filename, &gerror))) {
+		if (gerror != NULL) {
+			g_error_free(gerror);
+			gerror = NULL;
+		}
 		return NULL;
 	}
 #endif

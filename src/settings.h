@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2015 Willaim Weston <william.h.weston@gmail.com>
  * Copyright (C) 2010 Anton Kormakov <assault64@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
@@ -110,12 +110,7 @@ extern int                          setting_jack_autoconnect;
 extern int                          setting_jack_transport_mode;
 
 /* Synth settings */
-#if (ARCH_BITS == 32)
-extern float                        setting_tuning_freq;
-#endif
-#if (ARCH_BITS == 64)
-extern double                       setting_tuning_freq;
-#endif
+extern sample_t                     setting_tuning_freq;
 #ifdef NONSTANDARD_HARMONICS
 extern double                       setting_harmonic_base;
 extern double                       setting_harmonic_steps;

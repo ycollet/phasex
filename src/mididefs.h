@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 2012 William Weston <whw@linuxmail.org>
+ * Copyright (C) 2012-2015 Willaim Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,9 @@
 #define MIDI_EVENT_NO_EVENT         0x00    /* placeholder for empty events */
 #define MIDI_EVENT_PHASE_SYNC       0x01    /* resync phases with JACK Transport */
 #define MIDI_EVENT_BPM_CHANGE       0x02    /* resync BPM with JACK Transport */
+#define MIDI_EVENT_PARAMETER        0x03    /* internal parameter representation */
+#define MIDI_EVENT_NOTES_OFF        0x04
+#define MIDI_EVENT_RESYNC           0x05    /* resync message for buffer size, etc. */
 
 /* Types < 0xF0 have MIDI channel as 4 least significant bits. */
 #define MIDI_EVENT_NOTE_OFF         0x80    /* note         velocity    */
@@ -86,7 +89,7 @@
 /* PHASEX MIDI event structure */
 typedef struct midi_event {
 	union {
-		int                 state;
+		volatile gint       state;
 		int                 frame;
 	} __attribute__((__transparent_union__));
 	unsigned char       type;
@@ -99,6 +102,7 @@ typedef struct midi_event {
 		unsigned char       pitchbend;
 		unsigned char       lsb;
 		unsigned char       byte2;
+		unsigned char       parameter;
 	} __attribute__((__transparent_union__));
 	union {
 		unsigned char       velocity;
@@ -108,7 +112,11 @@ typedef struct midi_event {
 		unsigned char       byte3;
 	} __attribute__((__transparent_union__));
 	sample_t            float_value;
-	struct midi_event   *next;
+	unsigned char           data[8];
+	union {
+		struct midi_event   *next;
+		volatile gpointer   gnext;
+	} __attribute__((__transparent_union__));
 } MIDI_EVENT;
 
 

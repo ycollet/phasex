@@ -4,7 +4,7 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Copyright (C) 1999-2009 William Weston <whw@linuxmail.org>
+ * Copyright (C) 1999-2009 William Weston <william.h.weston@gmail.com>
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,9 +46,9 @@ extern unsigned int visible_prog_num[MAX_PARTS];
 PATCH *get_patch_from_bank(unsigned int part_num, unsigned int prog_num);
 PATCH *set_patch_from_bank(unsigned int part_num, unsigned int prog_num);
 
-void init_patch_bank(void);
-void load_patch_bank(void);
-void save_patch_bank(void);
+void init_patch_bank(char *filename);
+void load_patch_bank(char *filename);
+void save_patch_bank(char *filename);
 
 void load_patch_list(char *patch_list);
 
