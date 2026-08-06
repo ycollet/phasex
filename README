@@ -299,9 +299,7 @@ FEATURES:
 * Session Handling:
 
     For multitimbral builds, PHASEX comes equipped with a session bank
-    which operates much like the existing patch bank.  In addition to
-    the new native session handling, LASH and JACK Session supported
-    as well.
+    which operates much like the existing patch bank.
 
 -------------------------------------------------------------------------------
 
@@ -384,10 +382,6 @@ Required:
   * Realtime Linux Kernel (latest 3.0.x-rt or newer recommended).
   * 1.6 GHz or faster CPU (multiple core, 64-bit preferred).
 
-Optional:
-  * LASH >= 0.5.4.
-  * libuuid (required by LASH).
-
 -------------------------------------------------------------------------------
 
 
@@ -398,13 +392,12 @@ For a standard, multitimbral configuration optimized for your CPU,
 run the following:
 
     cd phasex
-    aclocal && autoconf && automake && autoheader
-    ./configure --enable-arch=native --enable-parts=2
-    make
-    make install
+    cmake -S . -B build -DPHASEX_NATIVE_ARCH=ON -DPHASEX_NUM_PARTS=2
+    cmake --build build
+    sudo cmake --install build
 
-Other useful configure flags are --enable-debug=, --enable-32bit,
---enable-cpu-power=, and --without-lash.
+Other useful CMake options are CMAKE_BUILD_TYPE, PHASEX_CPU_POWER,
+and PHASEX_NUM_PARTS.
 
 See INSTALL for full compilation and installation instructions.
 
@@ -435,17 +428,10 @@ Usage:  phasex [options] [<patch>[,<patch>[,<patch>[,...]]]]
   -U, --undersample      Use half the sample rate for internal math.
   -G, --no-gui           Run PHASEX without starting the GUI.
   -D, --session-dir=     Set directory for loading initial session.
-  -u, --uuid=            Set UUID for JACK Session handling.
   -d, --debug=           Debug class (Can be repeated. See debug.c).
   -l, --list             Scan and list audio and MIDI devices.
   -v, --version          Display version and exit.
   -h, --help             Display this help message and probe ALSA hardware.
-
-LASH Options:
-  -P, --lash-project=    LASH project name.
-  -S, --lash-server=     LASH server address.
-  -I, --lash-id=         LASH client ID.
-  -L, --disable-lash     Disable LASH completely for the current session.
 
 Please note that unless an alternate config file is used, all command
 line options take precedence over settings saved in the config file.

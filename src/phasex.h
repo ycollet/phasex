@@ -453,7 +453,6 @@ extern char *midi_port_name;
 extern char *audio_device_name;
 
 extern int use_gui;
-extern int lash_disabled;
 
 extern char user_data_dir[PATH_MAX];
 extern char user_patch_dir[PATH_MAX];

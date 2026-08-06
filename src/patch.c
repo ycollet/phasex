@@ -313,7 +313,7 @@ int
 read_patch(char *filename, PATCH *patch)
 {
 	char            new_file_name[PATH_MAX];
-	char            lash_patch_filename[16];
+	char            session_patch_filename[16];
 	PARAM           *param;
 	DIR_LIST        *pdir       = patch_dir_list;
 	DIR_LIST        *ldir       = NULL;
@@ -371,14 +371,14 @@ read_patch(char *filename, PATCH *patch)
 	}
 
 	/* keep track of filename, directory, and patch name, ignoring dump files */
-	snprintf(lash_patch_filename,
-	         sizeof(lash_patch_filename),
+	snprintf(session_patch_filename,
+	         sizeof(session_patch_filename),
 	         "phasex-%02d.phx",
 	         (patch->part_num + 1));
 	if ((filename != user_default_patch) &&
 	    (filename != sys_default_patch) &&
 	    (strncmp(filename, "/tmp/patch", 10) != 0) &&
-	    (strstr(filename, lash_patch_filename) == NULL)) {
+	    (strstr(filename, session_patch_filename) == NULL)) {
 		patch->filename = strdup(filename);
 		p = strdup(filename);
 		patch->directory = strdup(dirname(p));
@@ -571,7 +571,7 @@ int
 save_patch(char *filename, PATCH *patch)
 {
 	PARAM           *param;
-	char            lash_patch_filename[16];
+	char            session_patch_filename[16];
 	DIR_LIST        *pdir      = patch_dir_list;
 	DIR_LIST        *ldir      = NULL;
 	FILE            *patch_f;
@@ -609,13 +609,13 @@ save_patch(char *filename, PATCH *patch)
 		dump = 1;
 	}
 
-	/* keep track of filename changes, ignoring dump files and lash save files */
-	snprintf(lash_patch_filename,
-	         sizeof(lash_patch_filename),
+	/* keep track of filename changes, ignoring dump files and session save files */
+	snprintf(session_patch_filename,
+	         sizeof(session_patch_filename),
 	         "phasex-%02d.phx",
 	         (patch->part_num + 1));
 	if (!dump && (filename != patch->filename) &&
-	    (strstr(filename, lash_patch_filename) == NULL)) {
+	    (strstr(filename, session_patch_filename) == NULL)) {
 		if (patch->filename != NULL) {
 			free(patch->filename);
 		}

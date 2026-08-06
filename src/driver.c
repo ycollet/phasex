@@ -46,10 +46,6 @@
 #include "midimap.h"
 #include "gui_main.h"
 
-#ifndef WITHOUT_LASH
-# include "lash.h"
-#endif
-
 
 int                 audio_driver                = AUDIO_DRIVER_NONE;
 int                 midi_driver                 = MIDI_DRIVER_NONE;
@@ -606,11 +602,6 @@ phasex_watchdog(void)
 			midi_watchdog_func();
 		}
 
-#ifndef WITHOUT_LASH
-		if (!lash_disabled && !pending_shutdown) {
-			lash_poll_event();
-		}
-#endif
 		if (sample_rate_mode_changed) {
 			sample_rate_mode_changed = 0;
 			sample_rate_changed = 1;

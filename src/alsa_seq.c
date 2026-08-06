@@ -44,10 +44,6 @@
 #include "driver.h"
 #include "debug.h"
 
-#ifndef WITHOUT_LASH
-# include "lash.h"
-#endif
-
 
 ALSA_SEQ_INFO   *alsa_seq_info;
 
@@ -645,12 +641,6 @@ alsa_seq_init(void)
 	if ((alsa_seq_info = open_alsa_seq_in(port_name)) == NULL) {
 		return -1;
 	}
-
-#ifndef WITHOUT_LASH
-	if (!lash_disabled) {
-		lash_client_set_alsa_id(alsa_seq_info->seq);
-	}
-#endif
 
 	return 0;
 }

@@ -49,13 +49,6 @@
 #include "debug.h"
 #include "driver.h"
 
-#ifdef HAVE_JACK_SESSION_H
-# include <jack/session.h>
-#endif
-#ifndef WITHOUT_LASH
-# include "lash.h"
-#endif
-
 
 jack_client_t           *jack_audio_client         = NULL;
 static char             jack_audio_client_name[64] = "phasex";
@@ -84,12 +77,6 @@ JACK_PORT_INFO          *jack_midi_ports            = NULL;
 
 int                     jack_midi_ports_changed     = 0;
 int                     jack_rebuilding_port_list   = 0;
-
-char                    *jack_session_uuid          = NULL;
-
-#ifdef HAVE_JACK_SESSION_H
-jack_session_event_t    *jack_session_event         = NULL;
-#endif
 
 
 /*****************************************************************************
@@ -764,28 +751,6 @@ jack_graph_order_handler(void *arg)
 
 
 /*****************************************************************************
- * jack_session_handler()
- *
- * Called when jack needs to save the session.
- *****************************************************************************/
-#ifdef HAVE_JACK_SESSION_H
-void
-jack_session_handler(jack_session_event_t *event, void *UNUSED(arg))
-{
-	char                    cmd[256];
-
-	snprintf(cmd, sizeof(cmd), "phasex -u %s -D %s",
-	         event->client_uuid, event->session_dir);
-	event->command_line = strdup(cmd);
-	jack_session_reply(jack_audio_client, event);
-
-	/* keep session event and let watchdog do the real work */
-	jack_session_event = event;
-}
-#endif /* HAVE_JACK_SESSION_H */
-
-
-/*****************************************************************************
  * jack_error_handler()
  *****************************************************************************/
 void
@@ -1030,12 +995,6 @@ jack_audio_init(void)
 	jack_set_port_rename_callback
 		(jack_audio_client, jack_port_rename_handler, (void *) NULL);
 #endif /* HAVE_JACK_SET_PORT_RENAME_CALLBACK */
-#ifdef HAVE_JACK_SET_SESSION_CALLBACK
-	if (jack_set_session_callback) {
-		jack_set_session_callback
-			(jack_audio_client, jack_session_handler, (void *) NULL);
-	}
-#endif /* HAVE_JACK_SET_SESSION_CALLBACK */
 #if defined(HAVE_JACK_LATENCY_CALLBACK) && defined(ENABLE_JACK_LATENCY_CALLBACK)
 	if (jack_set_latency_callback) {
 		jack_set_latency_callback
@@ -1047,12 +1006,6 @@ jack_audio_init(void)
 	                              jack_graph_order_handler,
 	                              (void *) NULL);
 #endif /* ENABLE_JACK_GRAPH_ORDER_CALLBACK */
-
-#ifndef WITHOUT_LASH
-	if (!lash_disabled) {
-		lash_client_set_jack_name(jack_audio_client);
-	}
-#endif
 
 	return 0;
 }
@@ -1382,31 +1335,11 @@ void
 jack_watchdog_cycle(void)
 {
 	JACK_PORT_INFO  *cur;
-	char            *name;
-	int             save_and_quit = 0;
 
 	if (buffer_latency != (setting_buffer_latency * buffer_period_size)) {
 		buffer_latency = setting_buffer_latency * buffer_period_size;
 		jack_recompute_total_latencies(jack_audio_client);
 	}
-#ifdef HAVE_JACK_SESSION_H
-	if (jack_session_event != NULL) {
-		switch(jack_session_event->type) {
-		case JackSessionSaveAndQuit:
-			save_and_quit = 1;
-		case JackSessionSave:
-		case JackSessionSaveTemplate:
-			save_session((char *)(jack_session_event->session_dir), visible_sess_num, 1);
-			name = jack_get_session_name_from_directory(jack_session_event->session_dir);
-			PHASEX_DEBUG(DEBUG_CLASS_AUDIO, "JACK Saved session '%s'\n", name);
-			jack_session_event_free(jack_session_event);
-			jack_session_event = NULL;
-		}
-		if (save_and_quit) {
-			phasex_shutdown("Saved JACK Session.  Goodbye!\n");
-		}
-	}
-#endif /* HAVE_JACK_SESSION_H */
 	if ((midi_driver == MIDI_DRIVER_JACK) && (jack_midi_ports != NULL)) {
 		cur = jack_midi_ports;
 		while (cur != NULL) {

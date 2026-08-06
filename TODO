@@ -38,7 +38,7 @@ Build system:
 
 * Create dev logo to use as main icon/logo in dev builds.
 
-* Add --disable-inputs as a build option to configure.ac.
+* Add PHASEX_DISABLE_INPUTS as a build option to CMakeLists.txt.
 
 
 ------------------------------------------------------------------------------

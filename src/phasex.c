@@ -57,14 +57,9 @@
 #include "debug.h"
 
 
-#ifndef WITHOUT_LASH
-# include "lash.h"
-#endif
-
-
 /* command line options */
 #define HAS_ARG     1
-#define NUM_OPTS    (27 + 1)
+#define NUM_OPTS    (22 + 1)
 static struct option long_opts[] = {
 	{ "config-file",     HAS_ARG, NULL, 'c' },
 	{ "audio-driver",    HAS_ARG, NULL, 'A' },
@@ -80,7 +75,6 @@ static struct option long_opts[] = {
 	{ "tuning",          HAS_ARG, NULL, 't' },
 	{ "debug",           HAS_ARG, NULL, 'd' },
 	{ "session-dir",     HAS_ARG, NULL, 'D' },
-	{ "uuid",            HAS_ARG, NULL, 'u' },
 	{ "undersample",     0,       NULL, 'U' },
 	{ "oversample",      0,       NULL, 'O' },
 	{ "fullscreen",      0,       NULL, 'f' },
@@ -89,10 +83,6 @@ static struct option long_opts[] = {
 	{ "list",            0,       NULL, 'l' },
 	{ "help",            0,       NULL, 'h' },
 	{ "version",         0,       NULL, 'v' },
-	{ "disable-lash",    0,       NULL, 'L' },
-	{ "lash-project",    HAS_ARG, NULL, 'P' },
-	{ "lash-server",     HAS_ARG, NULL, 'S' },
-	{ "lash-id",         HAS_ARG, NULL, 'I' },
 	{ 0,                 0,       NULL, 0 }
 };
 
@@ -113,7 +103,6 @@ char        *midi_port_name               = NULL;
 char        *audio_device_name            = NULL;
 
 int         use_gui                       = 1;
-int         lash_disabled                 = 0;
 
 char        user_data_dir[PATH_MAX];
 char        user_patch_dir[PATH_MAX];
@@ -157,18 +146,10 @@ showusage(char *argvzero)
 	printf("  -U, --undersample      Use half the sample rate for internal math.\n");
 	printf("  -G, --no-gui           Run PHASEX without starting the GUI.\n");
 	printf("  -D, --session-dir=     Set directory for loading initial session.\n");
-	printf("  -u, --uuid=            Set UUID for JACK Session handling.\n");
 	printf("  -d, --debug=           Debug class (Can be repeated. See debug.c).\n");
 	printf("  -l, --list             Scan and list audio and MIDI devices.\n");
 	printf("  -v, --version          Display version and exit.\n");
 	printf("  -h, --help             Display this help message and probe ALSA hardware.\n\n");
-#ifndef WITHOUT_LASH
-	printf("LASH Options:\n");
-	printf("  -P, --lash-project=    LASH project name.\n");
-	printf("  -S, --lash-server=     LASH server address.\n");
-	printf("  -I, --lash-id=         LASH client ID.\n");
-	printf("  -L, --disable-lash     Disable LASH completely for the current session.\n\n");
-#endif
 	printf("[P]hase [H]armonic [A]dvanced [S]ynthesis [EX]permient ver. %s\n", PACKAGE_VERSION);
 	printf("  (C) 1999-2013 William Weston <whw@linuxmail.org>,\n");
 	printf("With contributions (C) 2010 Anton Kormakov <assault64@gmail.com>, and\n");
@@ -494,36 +475,15 @@ main(int argc, char **argv)
 		        saved_errno, strerror(saved_errno));
 	}
 
-	/* init lash client */
-#ifndef WITHOUT_LASH
-	for (j = 0; j < argc; j++) {
-		if ((strcmp(argv[j], "-L") == 0) || (strcmp(argv[j], "--disable-lash") == 0) ||
-		    (strcmp(argv[j], "-h") == 0) || (strcmp(argv[j], "--help") == 0) ||
-		    (strcmp(argv[j], "-l") == 0) || (strcmp(argv[j], "--list") == 0) ||
-		    (strcmp(argv[j], "-v") == 0) || (strcmp(argv[j], "--version") == 0) ||
-		    (strcmp(argv[j], "-D") == 0) || (strcmp(argv[j], "--session-dir") == 0) ||
-		    (strcmp(argv[j], "-u") == 0) || (strcmp(argv[j], "--uuid") == 0)) {
-			lash_disabled = 1;
-			break;
-		}
-	}
-	if (!lash_disabled) {
-		if (lash_client_init(&argc, &argv) == 0) {
-			lash_poll_event();
-		}
-	}
-#endif
-
 	/* make sure user data dirs exist. */
 	check_user_data_dirs();
 
-	/* If lash hasn't read a config, read user default config
-	   before processing cli args. */
+	/* read user default config before processing cli args. */
 	if (config_file == NULL) {
 		read_settings(user_config_file);
 	}
 	else {
-		fprintf(stderr, "Using LASH project config '%s'\n", config_file);
+		fprintf(stderr, "Using config file '%s'\n", config_file);
 	}
 
 	/* utilize some settings for startup */
@@ -650,9 +610,6 @@ main(int argc, char **argv)
 		case 'v':   /* version */
 			printf("phasex-%s\n", PACKAGE_VERSION);
 			return 0;
-		case 'L':   /* disable lash */
-			lash_disabled = 1;
-			break;
 		case 'l':   /* list audio / midi devices */
 			scan_audio_and_midi();
 			return 0;
@@ -663,9 +620,6 @@ main(int argc, char **argv)
 			}
 			snprintf(filename, PATH_MAX, "%s/%s", init_session_dir, USER_CONFIG_FILE);
 			config_file = strdup(filename);
-			break;
-		case 'u':   /* jack session uuid */
-			jack_session_uuid = strdup(optarg);
 			break;
 		case '?':
 		case 'h':   /* help */
@@ -823,21 +777,12 @@ main(int argc, char **argv)
 		pthread_mutex_unlock(&gtkui_ready_mutex);
 	}
 
-	/* Load JACK session, if necessary. */
+	/* Load initial session, if specified. */
 	if (init_session_dir != NULL) {
 		load_session(init_session_dir, 0, 1);
 		p = jack_get_session_name_from_directory(init_session_dir);
-		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial JACK Session '%s'\n", p)
+		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial session '%s'\n", p)
 	}
-
-#ifndef WITHOUT_LASH
-	/* Load LASH session, if necessary. */
-	else if (lash_project_dir != NULL) {
-		load_session(lash_project_dir, 0, 1);
-		p = lash_set_phasex_session_name(NULL);
-		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial LASH Session '%s'\n", p);
-	}
-#endif
 
 	/* run the callbacks for all the parameters */
 	run_param_callbacks(1);

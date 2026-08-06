@@ -59,10 +59,6 @@
 #include "help.h"
 #include "debug.h"
 
-#ifndef WITHOUT_LASH
-# include "lash.h"
-#endif
-
 #ifdef GDK_WINDOWING_X11
 # include <gdk/gdkx.h>
 # include <X11/Xlib.h>
