@@ -28,6 +28,7 @@ set(phasex_SOURCES
   midi_event.c midi_event.h
   midimap.c midimap.h
   midi_process.c midi_process.h
+  nsm.c nsm.h
   param.c param.h
   param_cb.c param_cb.h
   param_parse.c param_parse.h
@@ -72,6 +73,10 @@ endif()
 
 if(HAVE_LIBRT AND RT_LIBRARY)
   target_link_libraries(phasex PRIVATE ${RT_LIBRARY})
+endif()
+
+if(HAVE_LIBLO)
+  target_link_libraries(phasex PRIVATE PkgConfig::LIBLO)
 endif()
 
 install(TARGETS phasex RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

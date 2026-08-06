@@ -53,6 +53,20 @@
 jack_client_t           *jack_audio_client         = NULL;
 static char             jack_audio_client_name[64] = "phasex";
 
+
+/*****************************************************************************
+ * jack_set_client_name()
+ *
+ * Overrides the JACK client name to register with (e.g. the client_id
+ * assigned by NSM).  Must be called before jack_audio_init().
+ *****************************************************************************/
+void
+jack_set_client_name(const char *name)
+{
+	strncpy(jack_audio_client_name, name, sizeof(jack_audio_client_name) - 1);
+	jack_audio_client_name[sizeof(jack_audio_client_name) - 1] = '\0';
+}
+
 int                     num_output_pairs           = 0;
 
 #ifdef ENABLE_INPUTS
@@ -1269,60 +1283,6 @@ void
 jack_restart(void)
 {
 	jack_stop();
-}
-
-
-/*****************************************************************************
- * jack_get_session_name_from_directory()
- *****************************************************************************/
-char *
-jack_get_session_name_from_directory(const char *directory)
-{
-	SESSION *session = get_current_session();
-	char    *dir;
-	char    *p;
-	char    *q;
-	int     slashes;
-
-	dir = strdup(directory);
-	p = dir;
-	while (*p != '\0') {
-		p++;
-	}
-	p--;
-	if (*p == '/') {
-		*p-- = '\0';
-	}
-	slashes = 2;
-	while (slashes > 0) {
-		if ((*p == '/') && (* (p + 1) != '.')) {
-			slashes--;
-		}
-		p--;
-		if (p < dir) {
-			break;
-		}
-	}
-	p++;
-	if (slashes == 0) {
-		q = ++p;
-		while (*p != '/') {
-			p++;
-		}
-		*p = '\0';
-		if (session->name == NULL) {
-			session->name = strdup(q);
-		}
-		else {
-			p = session->name;
-			session->name = strdup(q);
-			free(p);
-		}
-		session_name_changed = 1;
-	}
-	free(dir);
-
-	return session->name;
 }
 
 

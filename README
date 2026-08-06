@@ -299,7 +299,11 @@ FEATURES:
 * Session Handling:
 
     For multitimbral builds, PHASEX comes equipped with a session bank
-    which operates much like the existing patch bank.
+    which operates much like the existing patch bank.  When built with
+    liblo, PHASEX also supports the New/Non Session Manager (NSM)
+    protocol:  launched under nsmd, PHASEX will announce itself, use
+    the session directory NSM assigns, and save on request, with no
+    extra command line options required.
 
 -------------------------------------------------------------------------------
 
@@ -381,6 +385,9 @@ Required:
   * GTK-2 (version 2.8 or later recommended).
   * Realtime Linux Kernel (latest 3.0.x-rt or newer recommended).
   * 1.6 GHz or faster CPU (multiple core, 64-bit preferred).
+
+Optional:
+  * liblo (for NSM / New Session Manager support).
 
 -------------------------------------------------------------------------------
 

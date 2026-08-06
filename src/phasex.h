@@ -24,7 +24,7 @@
 
 #include <pthread.h>
 #include <sys/param.h>
-#include "../config.h"
+#include "config.h"
 #include "driver.h"
 
 

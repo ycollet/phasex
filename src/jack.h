@@ -59,14 +59,13 @@ void jack_port_info_free(JACK_PORT_INFO *portinfo, int follow);
 JACK_PORT_INFO *jack_get_midi_port_list(void);
 
 void jack_shutdown(void *UNUSED(arg));
+void jack_set_client_name(const char *name);
 int  jack_audio_init(void);
 int  jack_start(void);
 int  jack_stop(void);
 void jack_restart(void);
 void jack_watchdog_cycle(void);
 void *jack_audio_thread(void *UNUSED(arg));
-
-char *jack_get_session_name_from_directory(const char *directory);
 
 
 #endif /* _PHASEX_JACK_H_ */

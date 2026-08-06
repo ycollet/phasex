@@ -45,6 +45,7 @@ message(STATUS "PHASEX version: ${PACKAGE_VERSION}")
 # Options
 # ----------------------------------------------------------------------------
 option(PHASEX_WITH_LIBRT "Link against librt if needed for clock_gettime/clock_nanosleep" ON)
+option(PHASEX_WITH_NSM "Build with New/Non Session Manager (NSM) support" ON)
 option(PHASEX_NATIVE_ARCH "Build with -march=native -mtune=native" OFF)
 
 set(PHASEX_NUM_PARTS "1" CACHE STRING "Number of active synth parts to build with (1-12)")
@@ -77,6 +78,17 @@ if(_gmodule_in_gtk EQUAL -1)
 endif()
 
 find_library(M_LIBRARY m)
+
+set(HAVE_LIBLO OFF)
+if(PHASEX_WITH_NSM)
+  pkg_check_modules(LIBLO IMPORTED_TARGET liblo)
+  if(LIBLO_FOUND)
+    set(HAVE_LIBLO ON)
+  else()
+    message(WARNING "liblo not found; building without NSM support")
+    set(PHASEX_WITH_NSM OFF)
+  endif()
+endif()
 
 # librt: only needed on systems where clock_gettime()/clock_nanosleep() do not
 # already live in libc.

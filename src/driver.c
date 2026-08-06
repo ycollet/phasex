@@ -45,6 +45,7 @@
 #include "param.h"
 #include "midimap.h"
 #include "gui_main.h"
+#include "nsm.h"
 
 
 int                 audio_driver                = AUDIO_DRIVER_NONE;
@@ -601,6 +602,8 @@ phasex_watchdog(void)
 		if (midi_watchdog_func != NULL) {
 			midi_watchdog_func();
 		}
+
+		nsm_check_events();
 
 		if (sample_rate_mode_changed) {
 			sample_rate_mode_changed = 0;

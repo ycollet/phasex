@@ -68,6 +68,7 @@ void save_session_bank(char *filename);
 int load_session(char *directory, unsigned int session_num, int managed);
 int save_session(char *directory, unsigned int session_num, int managed);
 char *get_session_name_from_directory(char *directory);
+char *update_session_name_from_directory(const char *directory);
 
 
 #endif /* _PHASEX_SESSION_H_ */

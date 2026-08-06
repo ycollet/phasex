@@ -32,4 +32,6 @@
 #cmakedefine HAVE_JACK_SET_PORT_RENAME_CALLBACK
 #cmakedefine HAVE_JACK_SET_LATENCY_CALLBACK
 
+#cmakedefine HAVE_LIBLO
+
 #endif /* PHASEX_CONFIG_H */

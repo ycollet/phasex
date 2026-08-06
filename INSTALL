@@ -12,6 +12,9 @@ Required:
 	jack-0.99.0
 	libsamplerate-0.1.2
 
+Optional:
+	liblo (for NSM / New Session Manager support)
+
 -------------------------------------------------------------------------------
 
 
@@ -64,6 +67,9 @@ Useful CMake options (pass as -D<option>=<value>):
 	                       Default 1.
 	PHASEX_WITH_LIBRT      Link against librt if needed for clock_gettime()
 	                       and clock_nanosleep() (default ON).
+	PHASEX_WITH_NSM        Build with New/Non Session Manager (NSM) support.
+	                       Auto-disabled with a warning if liblo isn't found
+	                       (default ON).
 
 Examples:
 

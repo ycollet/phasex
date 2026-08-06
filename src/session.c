@@ -617,3 +617,60 @@ get_session_name_from_directory(char *directory)
 	/* send name back to caller */
 	return name;
 }
+
+
+/*****************************************************************************
+ * update_session_name_from_directory()
+ *
+ * Derives a name from an externally supplied session directory (used by
+ * --session-dir and NSM) and updates the current session's name in place.
+ *****************************************************************************/
+char *
+update_session_name_from_directory(const char *directory)
+{
+	SESSION *session = get_current_session();
+	char    *dir;
+	char    *p;
+	char    *q;
+	int     slashes;
+
+	dir = strdup(directory);
+	p = dir;
+	while (*p != '\0') {
+		p++;
+	}
+	p--;
+	if (*p == '/') {
+		*p-- = '\0';
+	}
+	slashes = 2;
+	while (slashes > 0) {
+		if ((*p == '/') && (* (p + 1) != '.')) {
+			slashes--;
+		}
+		p--;
+		if (p < dir) {
+			break;
+		}
+	}
+	p++;
+	if (slashes == 0) {
+		q = ++p;
+		while (*p != '/') {
+			p++;
+		}
+		*p = '\0';
+		if (session->name == NULL) {
+			session->name = strdup(q);
+		}
+		else {
+			p = session->name;
+			session->name = strdup(q);
+			free(p);
+		}
+		session_name_changed = 1;
+	}
+	free(dir);
+
+	return session->name;
+}

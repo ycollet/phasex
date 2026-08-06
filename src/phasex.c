@@ -33,12 +33,14 @@
 #include <errno.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <libgen.h>
 #include <asoundlib.h>
 #include "phasex.h"
 #include "config.h"
 #include "driver.h"
 #include "alsa_seq.h"
 #include "jack.h"
+#include "nsm.h"
 #include "buffer.h"
 #include "engine.h"
 #include "wave.h"
@@ -636,6 +638,23 @@ main(int argc, char **argv)
 		}
 	}
 
+	/* Check for New/Non Session Manager.  If present, it dictates our
+	   session directory, config file, and JACK client name. */
+	p = strdup(argv[0]);
+	if (nsm_init(basename(p)) == 0) {
+		if (init_session_dir != NULL) {
+			free(init_session_dir);
+		}
+		init_session_dir = strdup(nsm_get_session_path());
+		if (config_file != NULL) {
+			free(config_file);
+		}
+		snprintf(filename, PATH_MAX, "%s/%s", init_session_dir, USER_CONFIG_FILE);
+		config_file = strdup(filename);
+		jack_set_client_name(nsm_get_client_id());
+	}
+	free(p);
+
 	/* If no alternate config file is given, use cli options for
 	   audio/midi settings. */
 	if ((config_file == NULL) || (strcmp(config_file, user_config_file) == 0)) {
@@ -685,6 +704,12 @@ main(int argc, char **argv)
 		read_settings(config_file);
 		audio_driver = setting_audio_driver;
 		midi_driver  = setting_midi_driver;
+	}
+
+	/* NSM implies JACK, regardless of what the config says. */
+	if (nsm_active) {
+		select_audio_driver(NULL, AUDIO_DRIVER_JACK);
+		setting_audio_driver = AUDIO_DRIVER_JACK;
 	}
 
 	/* start gtkui thread (in splash mode) */
@@ -780,7 +805,7 @@ main(int argc, char **argv)
 	/* Load initial session, if specified. */
 	if (init_session_dir != NULL) {
 		load_session(init_session_dir, 0, 1);
-		p = jack_get_session_name_from_directory(init_session_dir);
+		p = update_session_name_from_directory(init_session_dir);
 		PHASEX_DEBUG(DEBUG_CLASS_INIT, "Loaded initial session '%s'\n", p)
 	}
 
@@ -824,6 +849,8 @@ main(int argc, char **argv)
 		pthread_join(midi_thread_p,  NULL);
 	}
 	pthread_join(debug_thread_p, NULL);
+
+	nsm_finish();
 
 	return 0;
 }
