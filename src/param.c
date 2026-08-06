@@ -282,7 +282,7 @@ init_params(void)
 	init_param_info(PARAM_DELAY_FEED,            "delay_feed",          "Feedback",    PARAM_TYPE_REAL, -1, 127,  16,   0, 0,  8, 0, update_delay_feed,          NULL,               NULL);
 	init_param_info(PARAM_DELAY_CROSSOVER,       "delay_crossover",     "Crossover",   PARAM_TYPE_BOOL, -1, 127,   1,   0, 0,  1, 0, update_delay_crossover,     on_off_labels,      boolean_names);
 	init_param_info(PARAM_DELAY_TIME,            "delay_time",          "Time",        PARAM_TYPE_RATE, -1, 111,  12,   0, 0,  4, 1, update_delay_time,          rate_labels,        rate_names);
-	init_param_info(PARAM_DELAY_LFO,             "delay_lfo",           "LFO",         PARAM_TYPE_BBOX, -1, 127,   0,   0, 0,  1, 0, update_delay_lfo,           lfo_labels,         lfo_names);
+	init_param_info(PARAM_DELAY_LFO,             "delay_lfo",           "LFO",         PARAM_TYPE_BBOX, -1,   4,   0,   0, 0,  1, 0, update_delay_lfo,           lfo_labels,         lfo_names);
 	/*              index                         name                   label          type             cc  lim  ccv ofst ix leap    callback                    labels              names */
 	init_param_info(PARAM_OSC1_MODULATION,       "osc1_modulation",     "Mix Mod",     PARAM_TYPE_BBOX, -1,   3,   1,   0, 0,  1, 0, update_osc_modulation,      mod_type_labels,    mod_type_names);
 	init_param_info(PARAM_OSC1_WAVE,             "osc1_wave",           "Wave",        PARAM_TYPE_DTNT, -1,  27,  13,   0, 0,  1, 0, update_osc_wave,            wave_labels,        wave_names);

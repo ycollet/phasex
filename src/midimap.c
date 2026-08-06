@@ -231,7 +231,9 @@ read_midimap(char *filename)
 			if ((cc_num < 0) || (cc_num > 16)) {
 				cc_num = 16;
 			}
-			set_midi_channel_for_part(part_num, cc_num);
+			if (part_num < MAX_PARTS) {
+				set_midi_channel_for_part(part_num, cc_num);
+			}
 		}
 
 		/* see if there's a ',locked' */

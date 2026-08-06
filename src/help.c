@@ -38,6 +38,7 @@
 
 
 #define     LICENSE_SIZE                    40960
+#define     HELP_TEXT_BUFSIZE               32768
 
 
 PARAM_HELP  param_help[NUM_HELP_PARAMS];
@@ -276,10 +277,10 @@ init_help(void)
 	}
 
 	/* read help entries */
-	if ((textbuf = malloc(32768)) == NULL) {
+	if ((textbuf = malloc(HELP_TEXT_BUFSIZE)) == NULL) {
 		phasex_shutdown("Out of Memory!\n");
 	}
-	memset(textbuf, '\0', sizeof(textbuf));
+	memset(textbuf, '\0', HELP_TEXT_BUFSIZE);
 	memset(linebuf, '\0', sizeof(linebuf));
 	while (fgets(linebuf, 256, help_f) != NULL) {
 
@@ -329,13 +330,20 @@ init_help(void)
 			/* If still in help text for this param, add
 			   current line to help text. */
 			else {
+				size_t  textbuf_len = strlen(textbuf);
+				size_t  space_left  = (textbuf_len < HELP_TEXT_BUFSIZE - 1) ?
+					(HELP_TEXT_BUFSIZE - 1 - textbuf_len) : 0;
+
 				if (linebuf[0] == '\n') {
-					strcat(textbuf, "\n");
+					strncat(textbuf, "\n", space_left);
 				}
 				else if ((p = index((linebuf + 1), '\n')) != NULL) {
 					*p = ' ';
 				}
-				strcat(textbuf, linebuf);
+				textbuf_len = strlen(textbuf);
+				space_left  = (textbuf_len < HELP_TEXT_BUFSIZE - 1) ?
+					(HELP_TEXT_BUFSIZE - 1 - textbuf_len) : 0;
+				strncat(textbuf, linebuf, space_left);
 			}
 		}
 
@@ -373,7 +381,7 @@ init_help(void)
 
 			/* prepare to read in multiple lines of text for this param */
 			in_param_text = 1;
-			memset(textbuf, '\0', sizeof(textbuf));
+			memset(textbuf, '\0', HELP_TEXT_BUFSIZE);
 		}
 		memset(linebuf, '\0', sizeof(linebuf));
 	}

@@ -540,8 +540,12 @@ jack_port_rename_handler(jack_port_id_t UNUSED(port),
 int
 jack_bufsize_handler(jack_nframes_t nframes, void *UNUSED(arg))
 {
-	/* Make sure buffer doesn't get overrun */
-	if (nframes > PHASEX_MAX_BUFSIZE) {
+	/* Make sure buffer doesn't get overrun.  Check the actual buffer size
+	   used below (nframes * periods), not just nframes on its own -- a
+	   period size that passes this check on its own can still produce a
+	   buffer_size/buffer_size_mask larger than the real capacity of the
+	   audio buffers. */
+	if ((nframes * DEFAULT_BUFFER_PERIODS) > PHASEX_MAX_BUFSIZE) {
 		PHASEX_ERROR("JACK requested buffer size:  "
 		             "%d (%d * %d periods).  Max is:  %d.\n",
 		             (nframes * DEFAULT_BUFFER_PERIODS),

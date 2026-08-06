@@ -76,7 +76,9 @@ get_next_token(char *inbuf)
 
 	/* go just past the last character of the token */
 	if (in_quote) {
-		while (*t_index != '"') {
+		/* an unterminated quote ends the token at end-of-line/buffer,
+		   rather than scanning past it looking for a closing '"' */
+		while ((*t_index != '"') && (*t_index != '\0') && (*t_index != '\n')) {
 			t_index++;
 		}
 		//t_index++;
@@ -107,8 +109,8 @@ get_next_token(char *inbuf)
 	strncpy(token_buf, token_begin, len);
 	token_buf[len] = '\0';
 
-	/* skip past quote */
-	if (in_quote) {
+	/* skip past closing quote, if one was actually found */
+	if (in_quote && (*t_index == '"')) {
 		t_index++;
 	}
 

@@ -207,7 +207,8 @@ load_session(char *directory, unsigned int sess_num, int managed)
 		update_gui_session_name();
 
 		/* keep track of session container directory list */
-		strncpy(filename, directory, PATH_MAX);
+		strncpy(filename, directory, PATH_MAX - 1);
+		filename[PATH_MAX - 1] = '\0';
 		directory = dirname(filename);
 		session->parent_dir = strdup(directory);
 		if ((session->directory != NULL) &&
@@ -488,7 +489,8 @@ save_session(char *directory, unsigned int sess_num, int managed)
 			if (session->parent_dir != NULL) {
 				free(session->parent_dir);
 			}
-			strncpy(filename, session->directory, PATH_MAX);
+			strncpy(filename, session->directory, PATH_MAX - 1);
+			filename[PATH_MAX - 1] = '\0';
 			tmpdir = dirname(filename);
 			session->parent_dir = strdup(tmpdir);
 			if (sess_num == visible_sess_num) {
@@ -634,29 +636,35 @@ update_session_name_from_directory(const char *directory)
 	char    *q;
 	int     slashes;
 
+	if ((directory == NULL) || (directory[0] == '\0')) {
+		return session->name;
+	}
+
 	dir = strdup(directory);
 	p = dir;
 	while (*p != '\0') {
 		p++;
 	}
 	p--;
-	if (*p == '/') {
-		*p-- = '\0';
+	if ((p >= dir) && (*p == '/')) {
+		*p = '\0';
+		p--;
+	}
+	if (p < dir) {
+		free(dir);
+		return session->name;
 	}
 	slashes = 2;
-	while (slashes > 0) {
+	while ((slashes > 0) && (p >= dir)) {
 		if ((*p == '/') && (* (p + 1) != '.')) {
 			slashes--;
 		}
 		p--;
-		if (p < dir) {
-			break;
-		}
 	}
 	p++;
-	if (slashes == 0) {
+	if ((slashes == 0) && (p >= dir)) {
 		q = ++p;
-		while (*p != '/') {
+		while ((*p != '/') && (*p != '\0')) {
 			p++;
 		}
 		*p = '\0';

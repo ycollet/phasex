@@ -84,9 +84,10 @@ update_param_cc_map(GtkWidget *widget, gpointer data)
 			j = 0;
 			while ((ccmatrix[old_cc][j] >= 0) && (j < 16)) {
 				if (ccmatrix[old_cc][j] == id) {
-					for (k = j; k < 16; k++) {
+					for (k = j; k < 15; k++) {
 						ccmatrix[old_cc][k] = ccmatrix[old_cc][k + 1];
 					}
+					ccmatrix[old_cc][15] = -1;
 				}
 				j++;
 			}

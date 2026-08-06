@@ -68,11 +68,90 @@ nsm_reply(const char *path, const char *message)
 }
 
 
+/*****************************************************************************
+ * nsm_message_from_daemon()
+ *
+ * Reject anything not sent from the same port we announced to.  The OSC
+ * wire protocol has no authentication, so this is only a sanity check, not
+ * real authentication -- but it's cheap and rules out unrelated senders.
+ *
+ * Only the port is compared, not the host:  nsm_addr's hostname is whatever
+ * textual host NSM_URL happened to use (often the machine's own hostname),
+ * while lo_message_get_source() always reports the numeric peer address of
+ * the packet actually received (e.g. "127.0.0.1"); comparing those strings
+ * would reject the real daemon whenever the two representations don't match
+ * textually, which is common in practice.
+ *****************************************************************************/
 static int
-nsm_open_handler(const char *UNUSED(path), const char *UNUSED(types), lo_arg **argv,
-                  int argc, lo_message UNUSED(msg), void *UNUSED(user_data))
+nsm_message_from_daemon(lo_message msg)
 {
+	lo_address  src;
+	const char  *src_port;
+	const char  *daemon_port;
+
+	if ((src = lo_message_get_source(msg)) == NULL) {
+		return 0;
+	}
+
+	src_port    = lo_address_get_port(src);
+	daemon_port = lo_address_get_port(nsm_addr);
+
+	if ((src_port == NULL) || (daemon_port == NULL)) {
+		return 0;
+	}
+
+	return (strcmp(src_port, daemon_port) == 0);
+}
+
+
+/*****************************************************************************
+ * nsm_path_is_safe()
+ *
+ * Reject empty paths and paths containing a ".." component, so a spoofed
+ * open message can't point save/load at an arbitrary directory outside of
+ * whatever the session manager intended.
+ *****************************************************************************/
+static int
+nsm_path_is_safe(const char *path)
+{
+	size_t  len;
+
+	if ((path == NULL) || (path[0] == '\0')) {
+		return 0;
+	}
+
+	if ((strcmp(path, "..") == 0) ||
+	    (strncmp(path, "../", 3) == 0) ||
+	    (strstr(path, "/../") != NULL)) {
+		return 0;
+	}
+
+	len = strlen(path);
+	if ((len >= 3) && (strcmp(path + len - 3, "/..") == 0)) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+static int
+nsm_open_handler(const char *path, const char *UNUSED(types), lo_arg **argv,
+                  int argc, lo_message msg, void *UNUSED(user_data))
+{
+	if (!nsm_message_from_daemon(msg)) {
+		PHASEX_WARN("NSM: ignoring '%s' from unexpected sender.\n", path);
+		return 0;
+	}
+
 	if (argc < 3) {
+		return 0;
+	}
+
+	if (!nsm_path_is_safe(&argv[0]->s)) {
+		PHASEX_ERROR("NSM: refusing unsafe session path '%s'.\n", &argv[0]->s);
+		lo_send_from(nsm_addr, nsm_server, LO_TT_IMMEDIATE, "/error", "sis",
+		             path, 1, "Unsafe session path.");
 		return 0;
 	}
 
@@ -89,7 +168,7 @@ nsm_open_handler(const char *UNUSED(path), const char *UNUSED(types), lo_arg **a
 	PHASEX_DEBUG(DEBUG_CLASS_SESSION, "NSM: open '%s' (client_id=%s)\n",
 	             nsm_session_path, nsm_client_id);
 
-	nsm_reply("/nsm/client/open", "phasex is ready to roll.");
+	nsm_reply(path, "phasex is ready to roll.");
 
 	nsm_open_pending = 0;
 
@@ -98,24 +177,29 @@ nsm_open_handler(const char *UNUSED(path), const char *UNUSED(types), lo_arg **a
 
 
 static int
-nsm_save_handler(const char *UNUSED(path), const char *UNUSED(types), lo_arg **UNUSED(argv),
-                  int UNUSED(argc), lo_message UNUSED(msg), void *UNUSED(user_data))
+nsm_save_handler(const char *path, const char *UNUSED(types), lo_arg **UNUSED(argv),
+                  int UNUSED(argc), lo_message msg, void *UNUSED(user_data))
 {
+	if (!nsm_message_from_daemon(msg)) {
+		PHASEX_WARN("NSM: ignoring '%s' from unexpected sender.\n", path);
+		return 0;
+	}
+
 	if (nsm_session_path == NULL) {
-		nsm_reply("/nsm/client/save", "No session to save.");
+		nsm_reply(path, "No session to save.");
 		return 0;
 	}
 
 	if (save_session(nsm_session_path, visible_sess_num, 1) != 0) {
 		lo_send_from(nsm_addr, nsm_server, LO_TT_IMMEDIATE, "/error", "sis",
-		             "/nsm/client/save", 1, "Unable to save session.");
+		             path, 1, "Unable to save session.");
 		PHASEX_ERROR("NSM: unable to save session to '%s'.\n", nsm_session_path);
 		return 0;
 	}
 
 	PHASEX_DEBUG(DEBUG_CLASS_SESSION, "NSM: saved session to '%s'\n", nsm_session_path);
 
-	nsm_reply("/nsm/client/save", "Session saved.");
+	nsm_reply(path, "Session saved.");
 
 	return 0;
 }
@@ -170,7 +254,7 @@ nsm_init(const char *exe_name)
 
 	lo_server_add_method(nsm_server, "/nsm/client/open", "sss", nsm_open_handler, NULL);
 	lo_server_add_method(nsm_server, "/nsm/client/save", "", nsm_save_handler, NULL);
-	lo_server_add_method(nsm_server, "/error", NULL, nsm_error_handler, NULL);
+	lo_server_add_method(nsm_server, "/error", "sis", nsm_error_handler, NULL);
 
 	nsm_open_pending = 1;
 	nsm_open_failed  = 0;

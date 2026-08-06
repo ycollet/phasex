@@ -73,17 +73,22 @@ jack_process_midi(jack_nframes_t nframes)
 	/* handle all events for this process cycle */
 	for (e = 0; e < num_events; e++) {
 		jack_midi_event_get(&in_event, port_buf, e);
+		if (in_event.size < 1) {
+			continue;
+		}
 		/* handle messages with channel number embedded in the first byte */
 		if (* (in_event.buffer) < 0xF0) {
 			type    = * (in_event.buffer) & 0xF0;
 			channel = * (in_event.buffer) & 0x0F;
-			out_event->byte2   = (unsigned char) * (in_event.buffer + 1);
+			out_event->byte2   = (in_event.size >= 2) ?
+				(unsigned char) (* (in_event.buffer + 1) & 0x7F) : (unsigned char) 0x00;
 			out_event->type    = type;
 			out_event->channel = channel;
 			/* all channel specific messages except program change and
 			   polypressure have 2 bytes following status byte */
 			if ((type != 0xC0) && (type != 0xD0)) {
-				out_event->byte3 = * (in_event.buffer + 2);
+				out_event->byte3 = (in_event.size >= 3) ?
+					(unsigned char) (* (in_event.buffer + 2) & 0x7F) : (unsigned char) 0x00;
 			}
 			else {
 				out_event->byte3 = 0x00;

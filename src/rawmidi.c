@@ -864,7 +864,9 @@ rawmidi_read_sysex(void)
 		if (rawmidi_read(rawmidi_info, (unsigned char *) &midi_byte, 1) == 1) {
 			if ((midi_byte > 0xF0) && (midi_byte != 0xF7)) {
 				PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING, "---<0x%x>--- ", midi_byte);
-				midi_realtime_type[realtime_event_count++] = midi_byte;
+				if (realtime_event_count < (int) sizeof(midi_realtime_type)) {
+					midi_realtime_type[realtime_event_count++] = midi_byte;
+				}
 			}
 		}
 		else {
@@ -891,7 +893,9 @@ rawmidi_read_byte(void)
 			}
 			else if (midi_byte > 0xF0) {
 				PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING, "---<0x%x>--- ", midi_byte);
-				midi_realtime_type[realtime_event_count++] = midi_byte;
+				if (realtime_event_count < (int) sizeof(midi_realtime_type)) {
+					midi_realtime_type[realtime_event_count++] = midi_byte;
+				}
 			}
 		}
 		else {
@@ -900,7 +904,10 @@ rawmidi_read_byte(void)
 	}
 	while (!midi_stopped && !pending_shutdown && (midi_byte >= 0xF0));
 
-	return midi_byte;
+	/* mask to a valid 7-bit MIDI data byte before handing it back:  this
+	   value is used as-is by callers as a note/velocity/controller value,
+	   which are indexed directly into fixed 128-entry tables downstream. */
+	return (unsigned char) (midi_byte & 0x7F);
 }
 
 

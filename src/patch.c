@@ -342,7 +342,7 @@ read_patch(char *filename, PATCH *patch)
 	if (index(filename, '/') == NULL) {
 		while ((pdir != NULL) && (!dir_found)) {
 			snprintf(new_file_name,
-			         sizeof(char *) * PATH_MAX,
+			         sizeof(new_file_name),
 			         "%s/%s.phx",
 			         pdir->name,
 			         filename);
@@ -516,6 +516,16 @@ read_patch(char *filename, PATCH *patch)
 				else {
 					param->value.int_val = atoi(param_str_val);
 					param->value.cc_val  = param->value.int_val - param->info->cc_offset;
+					/* clamp to the parameter's valid range -- same bound
+					   already enforced for live MIDI CC input -- since
+					   cc_val is used directly to index fixed-size tables. */
+					if (param->value.cc_val < 0) {
+						param->value.cc_val = 0;
+					}
+					else if (param->value.cc_val > param->info->cc_limit) {
+						param->value.cc_val = param->info->cc_limit;
+					}
+					param->value.int_val = param->value.cc_val + param->info->cc_offset;
 				}
 			}
 		}
