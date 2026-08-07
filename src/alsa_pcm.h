@@ -27,41 +27,41 @@
 
 
 typedef struct alsa_pcm_hw_info {
-	int                     card_num;
-	int                     device_num;
-	int                     subdevice_num;
-	short                   connect_request;
-	short                   disconnect_request;
-	char                    *card_id;
-	char                    *card_name;
-	char                    *device_id;
-	char                    *device_name;
-	char                    *subdevice_name;
-	char                    alsa_name[32];
-	struct alsa_pcm_hw_info *next;
+    int                     card_num;
+    int                     device_num;
+    int                     subdevice_num;
+    short                   connect_request;
+    short                   disconnect_request;
+    char                    *card_id;
+    char                    *card_name;
+    char                    *device_id;
+    char                    *device_name;
+    char                    *subdevice_name;
+    char                    alsa_name[32];
+    struct alsa_pcm_hw_info *next;
 } ALSA_PCM_HW_INFO;
 
 typedef struct {
 #ifdef ENABLE_INPUTS
-	snd_pcm_t               *capture_handle;
-	snd_pcm_hw_params_t     *capture_hw_params;
-	snd_pcm_sw_params_t     *capture_sw_params;
-	snd_pcm_channel_area_t  *capture_areas;
-	unsigned char           *capture_samples;
+    snd_pcm_t               *capture_handle;
+    snd_pcm_hw_params_t     *capture_hw_params;
+    snd_pcm_sw_params_t     *capture_sw_params;
+    snd_pcm_channel_area_t  *capture_areas;
+    unsigned char           *capture_samples;
 #endif
-	snd_pcm_t               *playback_handle;
-	snd_pcm_hw_params_t     *playback_hw_params;
-	snd_pcm_sw_params_t     *playback_sw_params;
-	snd_pcm_channel_area_t  *playback_areas;
-	unsigned char           *playback_samples;
-	//ALSA_PCM_HW_INFO        *capture_hw;
-	//ALSA_PCM_HW_INFO        *playback_hw;
-	snd_pcm_sframes_t       period_size;
-	snd_pcm_sframes_t       buffer_size;
-	unsigned int            rate;
-	//short                   capture_channels;
-	//short                   playback_channels;
-	char                    pcm_name[32];
+    snd_pcm_t               *playback_handle;
+    snd_pcm_hw_params_t     *playback_hw_params;
+    snd_pcm_sw_params_t     *playback_sw_params;
+    snd_pcm_channel_area_t  *playback_areas;
+    unsigned char           *playback_samples;
+    //ALSA_PCM_HW_INFO        *capture_hw;
+    //ALSA_PCM_HW_INFO        *playback_hw;
+    snd_pcm_sframes_t       period_size;
+    snd_pcm_sframes_t       buffer_size;
+    unsigned int            rate;
+    //short                   capture_channels;
+    //short                   playback_channels;
+    char                    pcm_name[32];
 } ALSA_PCM_INFO;
 
 

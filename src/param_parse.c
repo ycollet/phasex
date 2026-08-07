@@ -44,22 +44,18 @@
  * returns a time based rate to be used by the engine.
  *****************************************************************************/
 sample_t
-get_rate_val(int ctlr)
-{
-	if (ctlr <= 0) {
-		return 32.0;
-	}
-	else if (ctlr <= 64) {
-		return (1.0 / (((sample_t)(ctlr)) * 4.0 / 64.0));
-	}
-	else if (ctlr <= 111) {
-		return (1.0 / (((sample_t)(ctlr - 64)) * 4.0 / 48.0));
-	}
-	else if (ctlr <= 127) {
-		return (1.0 / (((sample_t)(ctlr - 111)) * 4.0));
-	}
+get_rate_val(int ctlr) {
+    if (ctlr <= 0) {
+        return 32.0;
+    } else if (ctlr <= 64) {
+        return (1.0 / (((sample_t)(ctlr)) * 4.0 / 64.0));
+    } else if (ctlr <= 111) {
+        return (1.0 / (((sample_t)(ctlr - 64)) * 4.0 / 48.0));
+    } else if (ctlr <= 127) {
+        return (1.0 / (((sample_t)(ctlr - 111)) * 4.0));
+    }
 
-	return 0.25;
+    return 0.25;
 }
 
 
@@ -69,19 +65,15 @@ get_rate_val(int ctlr)
  * Given an input token, returns a boolean value of 1 or 0.
  *****************************************************************************/
 int
-get_boolean(char *token, char *UNUSED(filename), int UNUSED(line))
-{
-	if (strcmp(token, "1") == 0) {
-		return 1;
-	}
-	else if (strcmp(token, "true") == 0) {
-		return 1;
-	}
-	else if (strcmp(token, "yes") == 0) {
-		return 1;
-	}
-	else if (strcmp(token, "on") == 0) {
-		return 1;
-	}
-	return 0;
+get_boolean(char *token, char *UNUSED(filename), int UNUSED(line)) {
+    if (strcmp(token, "1") == 0) {
+        return 1;
+    } else if (strcmp(token, "true") == 0) {
+        return 1;
+    } else if (strcmp(token, "yes") == 0) {
+        return 1;
+    } else if (strcmp(token, "on") == 0) {
+        return 1;
+    }
+    return 0;
 }

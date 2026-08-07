@@ -76,16 +76,15 @@ extern sample_t     waveshaper_table_11[WAVESHAPER_TABLE_SIZE];
    already be non-negative, e.g. the result of MATH_ABS()), clamped to the
    table's domain. */
 static inline sample_t
-waveshaper_lookup(const sample_t *table, sample_t t)
-{
-	int index;
+waveshaper_lookup(const sample_t *table, sample_t t) {
+    int index;
 
-	if (t > (sample_t) WAVESHAPER_TABLE_MAX) {
-		t = (sample_t) WAVESHAPER_TABLE_MAX;
-	}
-	index = (int) ((t / (sample_t) WAVESHAPER_TABLE_MAX) * (WAVESHAPER_TABLE_SIZE - 1));
+    if (t > (sample_t) WAVESHAPER_TABLE_MAX) {
+        t = (sample_t) WAVESHAPER_TABLE_MAX;
+    }
+    index = (int) ((t / (sample_t) WAVESHAPER_TABLE_MAX) * (WAVESHAPER_TABLE_SIZE - 1));
 
-	return table[index];
+    return table[index];
 }
 
 

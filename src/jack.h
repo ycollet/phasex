@@ -28,13 +28,13 @@
 
 
 typedef struct jack_port_info {
-	jack_port_t             *port;
-	char                    *name;
-	char                    *type;
-	int                     connected;
-	short                   connect_request;
-	short                   disconnect_request;
-	struct jack_port_info   *next;
+    jack_port_t             *port;
+    char                    *name;
+    char                    *type;
+    int                     connected;
+    short                   connect_request;
+    short                   disconnect_request;
+    struct jack_port_info   *next;
 } JACK_PORT_INFO;
 
 

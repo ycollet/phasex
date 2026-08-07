@@ -227,56 +227,56 @@
 struct param_info;
 
 typedef struct param_nav_list {
-	GtkWidget               *widget;
-	int                     page_num;
-	struct param_info       *param_info;
-	struct param_nav_list   *prev;
-	struct param_nav_list   *next;
+    GtkWidget               *widget;
+    int                     page_num;
+    struct param_info       *param_info;
+    struct param_nav_list   *prev;
+    struct param_nav_list   *next;
 } PARAM_NAV_LIST;
 
 
 /* Parameter struct for handling conversion and value passing */
 typedef struct param_info {
-	const char      *name;          /* Parameter name for patches       */
-	const char      *label_text;    /* Parameter label for GUI          */
-	char            **strval_list;  /* List of string values for file saves */
-	unsigned int    id;             /* Param unique ID.  See defs above.    */
-	unsigned int    type;           /* Integer, real, or list values    */
-	unsigned int    index;          /* Index for array (lfo or osc) params  */
-	int             cc_num;         /* MIDI controller number           */
-	int             cc_limit;       /* Upper bound for MIDI controller  */
-	int             leap;           /* leap (moderately large step) size    */
-	int             cc_offset;      /* CC to int val offset             */
-	int             cc_default;     /* Default MIDI ctlr value          */
-	int             locked;         /* Allow only user-explicit updates */
-	int             prelight;       /* Prelight or hover state active   */
-	int             focused;        /* Currently focused or selected    */
-	int             sensitive;      /* Sensitivity state tracking       */
-	int             sr_dep;         /* Sample rate dependency flag  ?????   */
-	PARAM_NAV_LIST  *param_nav;     /* This param's entry in nav queue  */
-	GtkKnob         *knob;          /* Widget that holds param value    */
-	GtkObject       *adj;           /* Widget that holds param value    */
-	GtkWidget       *spin;          /* Widget that holds param value    */
-	GtkWidget       *combo;         /* Widget that holds param value    */
-	GtkWidget       *text;          /* Widget that holds param value    */
-	GtkWidget       *label;         /* Widget that holds param value    */
-	GtkWidget       *event;         /* Event box (usually parent)       */
-	GtkWidget       *table;         /* Param group table                */
-	GtkWidget       *frame;         /* Param group frame                */
-	GtkWidget       *button[12];    /* Widgets that hold param value    */
-	GtkWidget       *button_event[12][2]; /* Widgets that send signals  */
-	GtkWidget       *button_label[12]; /* For sensitivity management    */
-	GSList          *button_group;
-	const gchar     **list_labels;  /* List for list based parameters   */
-	char            _padding[16];
+    const char      *name;          /* Parameter name for patches       */
+    const char      *label_text;    /* Parameter label for GUI          */
+    char            **strval_list;  /* List of string values for file saves */
+    unsigned int    id;             /* Param unique ID.  See defs above.    */
+    unsigned int    type;           /* Integer, real, or list values    */
+    unsigned int    index;          /* Index for array (lfo or osc) params  */
+    int             cc_num;         /* MIDI controller number           */
+    int             cc_limit;       /* Upper bound for MIDI controller  */
+    int             leap;           /* leap (moderately large step) size    */
+    int             cc_offset;      /* CC to int val offset             */
+    int             cc_default;     /* Default MIDI ctlr value          */
+    int             locked;         /* Allow only user-explicit updates */
+    int             prelight;       /* Prelight or hover state active   */
+    int             focused;        /* Currently focused or selected    */
+    int             sensitive;      /* Sensitivity state tracking       */
+    int             sr_dep;         /* Sample rate dependency flag  ?????   */
+    PARAM_NAV_LIST  *param_nav;     /* This param's entry in nav queue  */
+    GtkKnob         *knob;          /* Widget that holds param value    */
+    GtkObject       *adj;           /* Widget that holds param value    */
+    GtkWidget       *spin;          /* Widget that holds param value    */
+    GtkWidget       *combo;         /* Widget that holds param value    */
+    GtkWidget       *text;          /* Widget that holds param value    */
+    GtkWidget       *label;         /* Widget that holds param value    */
+    GtkWidget       *event;         /* Event box (usually parent)       */
+    GtkWidget       *table;         /* Param group table                */
+    GtkWidget       *frame;         /* Param group frame                */
+    GtkWidget       *button[12];    /* Widgets that hold param value    */
+    GtkWidget       *button_event[12][2]; /* Widgets that send signals  */
+    GtkWidget       *button_label[12]; /* For sensitivity management    */
+    GSList          *button_group;
+    const gchar     **list_labels;  /* List for list based parameters   */
+    char            _padding[16];
 } PARAM_INFO;
 
 
 typedef struct param_value {
-	int         cc_prev;    /* Previous MIDI ctlr value     */
-	int         cc_val;     /* Current MIDI ctlr value      */
-	int         int_val;    /* Current integer param value  */
-	int         _padding;
+    int         cc_prev;    /* Previous MIDI ctlr value     */
+    int         cc_val;     /* Current MIDI ctlr value      */
+    int         int_val;    /* Current integer param value  */
+    int         _padding;
 } PARAM_VAL;
 
 
@@ -284,11 +284,11 @@ typedef struct param_value {
 struct patch;
 
 typedef struct phasex_param {
-	PARAM_INFO      *info;
-	PARAM_VAL       value;
-	struct patch    *patch;     /* container for this param     */
-	int             updated;    /* dirty flag for gui           */
-	char            _padding[24];
+    PARAM_INFO      *info;
+    PARAM_VAL       value;
+    struct patch    *patch;     /* container for this param     */
+    int             updated;    /* dirty flag for gui           */
+    char            _padding[24];
 } PARAM;
 
 
@@ -298,9 +298,9 @@ typedef void (*PARAM_CB)(PARAM *param);
 
 
 typedef struct param_cb_info {
-	PARAM_CB        update_patch_state; /* Callback for updating engine state   */
-	//PARSE_CB        parse;              /* Get cc_val from strval               */
-	//STRVAL_CB       get_strval;         /* Get parseable strval from param val  */
+    PARAM_CB        update_patch_state; /* Callback for updating engine state   */
+    //PARSE_CB        parse;              /* Get cc_val from strval               */
+    //STRVAL_CB       get_strval;         /* Get parseable strval from param val  */
 } PARAM_CB_INFO;
 
 

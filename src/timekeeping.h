@@ -39,15 +39,15 @@ typedef double timecalc_t;
 
 
 struct phasex_timestamp {
-	int                         sec;
-	int                         nsec;
+    int                         sec;
+    int                         nsec;
 } __attribute__((packed));
 typedef struct phasex_timestamp PHASEX_TIMESTAMP;
 
 
 typedef union atomic_timestamp {
-	gpointer                    gptr;
-	PHASEX_TIMESTAMP            timestamp;
+    gpointer                    gptr;
+    PHASEX_TIMESTAMP            timestamp;
 } ATOMIC_TIMESTAMP __attribute__((__transparent_union__));
 
 

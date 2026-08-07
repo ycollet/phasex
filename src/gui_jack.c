@@ -45,40 +45,38 @@ GtkMenuItem     *jack_midi_menu_item    = NULL;
  * on_jack_menu_activate()
  *****************************************************************************/
 void
-on_jack_menu_activate(GtkMenuItem *UNUSED(parent_menu_item), gpointer UNUSED(data))
-{
-	JACK_PORT_INFO      *cur      = NULL;
-	GtkWidget           *submenu;
-	GtkWidget           *menu_item;
+on_jack_menu_activate(GtkMenuItem *UNUSED(parent_menu_item), gpointer UNUSED(data)) {
+    JACK_PORT_INFO      *cur      = NULL;
+    GtkWidget           *submenu;
+    GtkWidget           *menu_item;
 
-	/* build JACK MIDI submenu */
-	if ((midi_driver == MIDI_DRIVER_JACK) && (jack_midi_ports != NULL)) {
-		submenu = gtk_menu_new();
-		menu_item = NULL;
-		cur = jack_midi_ports;
-		while (cur != NULL) {
-			menu_item = gtk_check_menu_item_new_with_label(cur->name);
-			widget_set_custom_font(GTK_WIDGET(menu_item), phasex_font_desc);
+    /* build JACK MIDI submenu */
+    if ((midi_driver == MIDI_DRIVER_JACK) && (jack_midi_ports != NULL)) {
+        submenu = gtk_menu_new();
+        menu_item = NULL;
+        cur = jack_midi_ports;
+        while (cur != NULL) {
+            menu_item = gtk_check_menu_item_new_with_label(cur->name);
+            widget_set_custom_font(GTK_WIDGET(menu_item), phasex_font_desc);
 
-			/* set checkbutton active if port currently connected */
-			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_item),
-			                               cur->connected ? TRUE : FALSE);
+            /* set checkbutton active if port currently connected */
+            gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_item),
+                                           cur->connected ? TRUE : FALSE);
 
-			gtk_menu_append(GTK_MENU(submenu), menu_item);
-			gtk_widget_show(menu_item);
+            gtk_menu_append(GTK_MENU(submenu), menu_item);
+            gtk_widget_show(menu_item);
 
-			g_signal_connect(G_OBJECT(menu_item), "toggled",
-			                 GTK_SIGNAL_FUNC(on_select_jack_midi_port),
-			                 (gpointer) cur);
+            g_signal_connect(G_OBJECT(menu_item), "toggled",
+                             GTK_SIGNAL_FUNC(on_select_jack_midi_port),
+                             (gpointer) cur);
 
-			cur = cur->next;
-		}
-		gtk_menu_item_set_submenu(GTK_MENU_ITEM(jack_midi_menu_item), submenu);
-		gtk_widget_set_sensitive(GTK_WIDGET(jack_midi_menu_item), TRUE);
-	}
-	else {
-		gtk_widget_set_sensitive(GTK_WIDGET(jack_midi_menu_item), FALSE);
-	}
+            cur = cur->next;
+        }
+        gtk_menu_item_set_submenu(GTK_MENU_ITEM(jack_midi_menu_item), submenu);
+        gtk_widget_set_sensitive(GTK_WIDGET(jack_midi_menu_item), TRUE);
+    } else {
+        gtk_widget_set_sensitive(GTK_WIDGET(jack_midi_menu_item), FALSE);
+    }
 }
 
 
@@ -86,28 +84,26 @@ on_jack_menu_activate(GtkMenuItem *UNUSED(parent_menu_item), gpointer UNUSED(dat
  * on_select_jack_midi_port()
  *****************************************************************************/
 void
-on_select_jack_midi_port(GtkCheckMenuItem *menu_item, gpointer data)
-{
-	JACK_PORT_INFO  *cur = jack_midi_ports;
+on_select_jack_midi_port(GtkCheckMenuItem *menu_item, gpointer data) {
+    JACK_PORT_INFO  *cur = jack_midi_ports;
 
-	if (gtk_check_menu_item_get_active(menu_item)) {
-		while (cur != NULL) {
-			if (data == (gpointer) cur) {
-				cur->connect_request    = 1;
-				cur->disconnect_request = 0;
-				break;
-			}
-			cur = cur->next;
-		}
-	}
-	else {
-		while (cur != NULL) {
-			if (data == (gpointer) cur) {
-				cur->connect_request    = 0;
-				cur->disconnect_request = 1;
-				break;
-			}
-			cur = cur->next;
-		}
-	}
+    if (gtk_check_menu_item_get_active(menu_item)) {
+        while (cur != NULL) {
+            if (data == (gpointer) cur) {
+                cur->connect_request    = 1;
+                cur->disconnect_request = 0;
+                break;
+            }
+            cur = cur->next;
+        }
+    } else {
+        while (cur != NULL) {
+            if (data == (gpointer) cur) {
+                cur->connect_request    = 0;
+                cur->disconnect_request = 1;
+                break;
+            }
+            cur = cur->next;
+        }
+    }
 }

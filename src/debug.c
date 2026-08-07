@@ -36,22 +36,22 @@ int                 debug       = 0;
 unsigned long       debug_class = 0;
 
 DEBUG_CLASS         debug_class_list[16] = {
-	{ DEBUG_CLASS_NONE,           "none" },
-	{ DEBUG_CLASS_INIT,           "init" },
-	{ DEBUG_CLASS_GUI,            "gui" },
-	{ DEBUG_CLASS_PARAM,          "param" },
-	{ DEBUG_CLASS_RAW_MIDI,       "raw-midi" },
-	{ DEBUG_CLASS_MIDI,           "midi" },
-	{ DEBUG_CLASS_MIDI_NOTE,      "note" },
-	{ DEBUG_CLASS_MIDI_EVENT,     "event" },
-	{ DEBUG_CLASS_MIDI_TIMING,    "timing" },
-	{ DEBUG_CLASS_AUDIO,          "audio" },
-	{ DEBUG_CLASS_JACK_TRANSPORT, "jack-transport" },
-	{ DEBUG_CLASS_ENGINE,         "engine" },
-	{ DEBUG_CLASS_ENGINE_TIMING,  "engine-timing" },
-	{ DEBUG_CLASS_SESSION,        "session" },
-	{ DEBUG_CLASS_ALL,            "all" },
-	{ (~0UL),                     NULL }
+    { DEBUG_CLASS_NONE,           "none" },
+    { DEBUG_CLASS_INIT,           "init" },
+    { DEBUG_CLASS_GUI,            "gui" },
+    { DEBUG_CLASS_PARAM,          "param" },
+    { DEBUG_CLASS_RAW_MIDI,       "raw-midi" },
+    { DEBUG_CLASS_MIDI,           "midi" },
+    { DEBUG_CLASS_MIDI_NOTE,      "note" },
+    { DEBUG_CLASS_MIDI_EVENT,     "event" },
+    { DEBUG_CLASS_MIDI_TIMING,    "timing" },
+    { DEBUG_CLASS_AUDIO,          "audio" },
+    { DEBUG_CLASS_JACK_TRANSPORT, "jack-transport" },
+    { DEBUG_CLASS_ENGINE,         "engine" },
+    { DEBUG_CLASS_ENGINE_TIMING,  "engine-timing" },
+    { DEBUG_CLASS_SESSION,        "session" },
+    { DEBUG_CLASS_ALL,            "all" },
+    { (~0UL),                     NULL }
 };
 
 
@@ -59,12 +59,11 @@ DEBUG_CLASS         debug_class_list[16] = {
  * init_debug_buffers()
  *****************************************************************************/
 void
-init_debug_buffers(void)
-{
-	memset(& (main_debug_queue), 0, sizeof(DEBUG_RINGBUFFER));
-	main_debug_queue.read_index = 0;
-	g_atomic_int_set(& (main_debug_queue.write_index), 0);
-	g_atomic_int_set(& (main_debug_queue.insert_index), DEBUG_BUFFER_MASK);
+init_debug_buffers(void) {
+    memset(& (main_debug_queue), 0, sizeof(DEBUG_RINGBUFFER));
+    main_debug_queue.read_index = 0;
+    g_atomic_int_set(& (main_debug_queue.write_index), 0);
+    g_atomic_int_set(& (main_debug_queue.insert_index), DEBUG_BUFFER_MASK);
 }
 
 
@@ -72,33 +71,32 @@ init_debug_buffers(void)
  * phasex_debug_thread()
  *****************************************************************************/
 void *
-phasex_debug_thread(void *UNUSED(arg))
-{
-	init_debug_buffers();
+phasex_debug_thread(void *UNUSED(arg)) {
+    init_debug_buffers();
 
 #ifdef DEBUG_STRUCT_SIZES
-	fprintf(stderr,
-	        "Struct sizes:  param=%d  param_info=%d  global=%d\n"
-	        "               part=%d  voice=%d  patch=%d  patch_state=%d\n"
-	        "               delay=%d (%u buf)  chorus=%d (%u buf)\n",
-	        (int) sizeof(PARAM), (int) sizeof(PARAM_INFO), (int) sizeof(global),
-	        (int) sizeof(PART), (int) sizeof(VOICE),
-	        (int) sizeof(PATCH), (int) sizeof(PATCH_STATE),
-	        (int) sizeof(DELAY), (unsigned int)(DELAY_MAX * 2 * sizeof(sample_t)),
-	        (int) sizeof(CHORUS), (unsigned int)(CHORUS_MAX * 2 * sizeof(sample_t)));
+    fprintf(stderr,
+            "Struct sizes:  param=%d  param_info=%d  global=%d\n"
+            "               part=%d  voice=%d  patch=%d  patch_state=%d\n"
+            "               delay=%d (%u buf)  chorus=%d (%u buf)\n",
+            (int) sizeof(PARAM), (int) sizeof(PARAM_INFO), (int) sizeof(global),
+            (int) sizeof(PART), (int) sizeof(VOICE),
+            (int) sizeof(PATCH), (int) sizeof(PATCH_STATE),
+            (int) sizeof(DELAY), (unsigned int)(DELAY_MAX * 2 * sizeof(sample_t)),
+            (int) sizeof(CHORUS), (unsigned int)(CHORUS_MAX * 2 * sizeof(sample_t)));
 #endif
 
-	while (!pending_shutdown) {
-		usleep(16000 >> PHASEX_CPU_POWER);
-		while (main_debug_queue.read_index !=
-		       g_atomic_int_get(& (main_debug_queue.write_index))) {
-			fprintf(stderr, "%s",
-			        main_debug_queue.msgs[main_debug_queue.read_index].msg);
-			main_debug_queue.read_index =
-				(main_debug_queue.read_index + 1) & DEBUG_BUFFER_MASK;
-		}
-	}
+    while (!pending_shutdown) {
+        usleep(16000 >> PHASEX_CPU_POWER);
+        while (main_debug_queue.read_index !=
+                g_atomic_int_get(& (main_debug_queue.write_index))) {
+            fprintf(stderr, "%s",
+                    main_debug_queue.msgs[main_debug_queue.read_index].msg);
+            main_debug_queue.read_index =
+                (main_debug_queue.read_index + 1) & DEBUG_BUFFER_MASK;
+        }
+    }
 
-	pthread_exit(NULL);
-	return NULL;
+    pthread_exit(NULL);
+    return NULL;
 }

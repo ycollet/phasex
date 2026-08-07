@@ -72,25 +72,25 @@
 
 
 typedef struct debug_class {
-	unsigned long       id;
-	char                *name;
+    unsigned long       id;
+    char                *name;
 } DEBUG_CLASS;
 
 typedef struct debug_msg {
-	char                msg[DEBUG_MESSAGE_SIZE];
+    char                msg[DEBUG_MESSAGE_SIZE];
 } DEBUG_MESSAGE;
 
 typedef struct debug_queue {
-	DEBUG_MESSAGE       *head;
-	DEBUG_MESSAGE       *divider;
-	DEBUG_MESSAGE       *tail;
+    DEBUG_MESSAGE       *head;
+    DEBUG_MESSAGE       *divider;
+    DEBUG_MESSAGE       *tail;
 } DEBUG_QUEUE;
 
 typedef struct debug_ringbuffer {
-	DEBUG_MESSAGE       msgs[DEBUG_MESSAGE_POOL_SIZE];
-	volatile gint       read_index;
-	volatile gint       write_index;
-	volatile gint       insert_index;
+    DEBUG_MESSAGE       msgs[DEBUG_MESSAGE_POOL_SIZE];
+    volatile gint       read_index;
+    volatile gint       write_index;
+    volatile gint       insert_index;
 } DEBUG_RINGBUFFER;
 
 

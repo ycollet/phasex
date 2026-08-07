@@ -64,26 +64,23 @@ timecalc_t                  audio_phase_max       = 255.0;
  * set_audio_phase_lock()
  *****************************************************************************/
 void
-set_audio_phase_lock(void)
-{
-	if ((setting_audio_phase_lock <= 0.00390625) ||
-	    (setting_audio_phase_lock >= 0.99609375)) {
-		setting_audio_phase_lock = DEFAULT_AUDIO_PHASE_LOCK;
-	}
+set_audio_phase_lock(void) {
+    if ((setting_audio_phase_lock <= 0.00390625) ||
+            (setting_audio_phase_lock >= 0.99609375)) {
+        setting_audio_phase_lock = DEFAULT_AUDIO_PHASE_LOCK;
+    }
 
-	audio_phase_lock = (timecalc_t)(setting_audio_phase_lock * f_buffer_period_size);
-	if (audio_phase_lock > 2.0) {
-		audio_phase_min  = audio_phase_lock - 2.0;
-	}
-	else {
-		audio_phase_min  = 0.0;
-	}
-	if (audio_phase_lock < (f_buffer_period_size - 2.0)) {
-		audio_phase_max  = audio_phase_lock + 2.0;
-	}
-	else {
-		audio_phase_max  = (f_buffer_period_size - 2.0);
-	}
+    audio_phase_lock = (timecalc_t)(setting_audio_phase_lock * f_buffer_period_size);
+    if (audio_phase_lock > 2.0) {
+        audio_phase_min  = audio_phase_lock - 2.0;
+    } else {
+        audio_phase_min  = 0.0;
+    }
+    if (audio_phase_lock < (f_buffer_period_size - 2.0)) {
+        audio_phase_max  = audio_phase_lock + 2.0;
+    } else {
+        audio_phase_max  = (f_buffer_period_size - 2.0);
+    }
 }
 
 
@@ -94,72 +91,71 @@ set_audio_phase_lock(void)
  * initilization (buffer size, sample rate, etc.).
  *****************************************************************************/
 void
-start_midi_clock(void)
-{
+start_midi_clock(void) {
 #ifdef HAVE_CLOCK_GETTIME
-	struct timespec     now;
+    struct timespec     now;
 #else
-	struct timeval      now;
+    struct timeval      now;
 #endif
-	ATOMIC_TIMESTAMP    new_timeref;
+    ATOMIC_TIMESTAMP    new_timeref;
 
-	g_atomic_int_set(&need_increment, 0);
+    g_atomic_int_set(&need_increment, 0);
 
-	audio_start_time.tv_sec  = 0;
-	audio_start_time.tv_nsec = PHASEX_CLOCK_INIT;
+    audio_start_time.tv_sec  = 0;
+    audio_start_time.tv_nsec = PHASEX_CLOCK_INIT;
 
-	f_buffer_period_size = (timecalc_t) buffer_period_size;
+    f_buffer_period_size = (timecalc_t) buffer_period_size;
 
-	nsec_per_period  = f_buffer_period_size * 1000000000.0 / f_sample_rate;
-	if ((setting_clock_constant > 0.8) && (setting_clock_constant < 1.25)) {
-		nsec_per_period *= setting_clock_constant;
-		PHASEX_DEBUG((DEBUG_CLASS_INIT | DEBUG_CLASS_MIDI_TIMING),
-		             "Using previously calculated clock_constant=%0.23f.\n",
-		             setting_clock_constant);
-	}
-	nsec_per_frame   = nsec_per_period / f_buffer_period_size;
+    nsec_per_period  = f_buffer_period_size * 1000000000.0 / f_sample_rate;
+    if ((setting_clock_constant > 0.8) && (setting_clock_constant < 1.25)) {
+        nsec_per_period *= setting_clock_constant;
+        PHASEX_DEBUG((DEBUG_CLASS_INIT | DEBUG_CLASS_MIDI_TIMING),
+                     "Using previously calculated clock_constant=%0.23f.\n",
+                     setting_clock_constant);
+    }
+    nsec_per_frame   = nsec_per_period / f_buffer_period_size;
 
-	set_audio_phase_lock();
+    set_audio_phase_lock();
 
 #ifdef HAVE_CLOCK_GETTIME
 
 # ifdef CLOCK_MONOTONIC
-	if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-		midi_clockid = CLOCK_MONOTONIC;
-	}
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+        midi_clockid = CLOCK_MONOTONIC;
+    }
 # endif
 # ifdef CLOCK_MONITONIC_HR
-	if (clock_gettime(CLOCK_MONOTONIC_HR, &now) == 0) {
-		midi_clockid = CLOCK_MONOTONIC_HR;
-	}
+    if (clock_gettime(CLOCK_MONOTONIC_HR, &now) == 0) {
+        midi_clockid = CLOCK_MONOTONIC_HR;
+    }
 # endif
 # ifdef CLOCK_MONOTONIC_RAW
-	if (clock_gettime(CLOCK_MONOTONIC_RAW, &now) == 0) {
-		midi_clockid = CLOCK_MONOTONIC_RAW;
-	}
+    if (clock_gettime(CLOCK_MONOTONIC_RAW, &now) == 0) {
+        midi_clockid = CLOCK_MONOTONIC_RAW;
+    }
 # endif
 
-	/* now set the reference timestamp itself. */
-	if (clock_gettime(midi_clockid, &now) == 0) {
-		new_timeref.timestamp.sec  = (int) now.tv_sec;
-		new_timeref.timestamp.nsec = (int) now.tv_nsec;
-		g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
-	}
+    /* now set the reference timestamp itself. */
+    if (clock_gettime(midi_clockid, &now) == 0) {
+        new_timeref.timestamp.sec  = (int) now.tv_sec;
+        new_timeref.timestamp.nsec = (int) now.tv_nsec;
+        g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
+    }
 
 #else /* !HAVE_CLOCK_GETTIME */
 
-	if (gettimeofday(&now, NULL) == 0) {
-		new_timeref.timestamp.sec  = now.tv_sec;
-		new_timeref.timestamp.nsec = now.tv_usec * 1000;
-		g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
-	}
+    if (gettimeofday(&now, NULL) == 0) {
+        new_timeref.timestamp.sec  = now.tv_sec;
+        new_timeref.timestamp.nsec = now.tv_usec * 1000;
+        g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
+    }
 
 #endif /* !HAVE_CLOCK_GETTIME */
 
-	/* initialize the active sensing timeout to zero (active sensing off). */
-	new_timeref.timestamp.sec  = 0;
-	new_timeref.timestamp.nsec = 0;
-	g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeref.gptr);
+    /* initialize the active sensing timeout to zero (active sensing off). */
+    new_timeref.timestamp.sec  = 0;
+    new_timeref.timestamp.nsec = 0;
+    g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeref.gptr);
 }
 
 
@@ -172,32 +168,31 @@ start_midi_clock(void)
  * frame position.
  *****************************************************************************/
 timecalc_t
-get_time_delta(struct timespec *now)
-{
-	ATOMIC_TIMESTAMP    last_timeref;
+get_time_delta(struct timespec *now) {
+    ATOMIC_TIMESTAMP    last_timeref;
 #ifndef HAVE_CLOCK_GETTIME
-	struct timeval      walltime;
+    struct timeval      walltime;
 #endif
 
-	if (
+    if (
 #ifdef HAVE_CLOCK_GETTIME
-	    clock_gettime(midi_clockid, now)
+        clock_gettime(midi_clockid, now)
 #else
-	    gettimeofday(&walltime, NULL)
+        gettimeofday(&walltime, NULL)
 #endif
-	    == 0) {
+        == 0) {
 #ifndef HAVE_CLOCK_GETTIME
-		now->tv_sec  = walltime.tv_sec;
-		now->tv_nsec = walltime.tv_usec * 1000;
+        now->tv_sec  = walltime.tv_sec;
+        now->tv_nsec = walltime.tv_usec * 1000;
 #endif
-		last_timeref.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
-		return (timecalc_t)(((now->tv_sec -
-		                      last_timeref.timestamp.sec) * 1000000000) +
-		                    (now->tv_nsec - last_timeref.timestamp.nsec));
-	}
+        last_timeref.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
+        return (timecalc_t)(((now->tv_sec -
+                              last_timeref.timestamp.sec) * 1000000000) +
+                            (now->tv_nsec - last_timeref.timestamp.nsec));
+    }
 
-	PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING, "clock_gettime() failed!\n");
-	return 0.0;
+    PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING, "clock_gettime() failed!\n");
+    return 0.0;
 }
 
 
@@ -212,25 +207,23 @@ get_time_delta(struct timespec *now)
  * per midi period.
  *****************************************************************************/
 guint
-inc_midi_index(void)
-{
-	guint       old_midi_index;
-	guint       new_midi_index  = buffer_periods;
+inc_midi_index(void) {
+    guint       old_midi_index;
+    guint       new_midi_index  = buffer_periods;
 
-	if (g_atomic_int_compare_and_exchange(&need_increment, 1, 0)) {
-		do {
-			old_midi_index = (guint) g_atomic_int_get(&midi_index);
-			new_midi_index = (old_midi_index + buffer_period_size) & buffer_size_mask;
-		}
-		while (!g_atomic_int_compare_and_exchange(&midi_index,
-		                                          (gint) old_midi_index,
-		                                          (gint) new_midi_index));
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_ORANGE ": " DEBUG_COLOR_DEFAULT);
-		return new_midi_index;
-	}
+    if (g_atomic_int_compare_and_exchange(&need_increment, 1, 0)) {
+        do {
+            old_midi_index = (guint) g_atomic_int_get(&midi_index);
+            new_midi_index = (old_midi_index + buffer_period_size) & buffer_size_mask;
+        } while (!g_atomic_int_compare_and_exchange(&midi_index,
+                (gint) old_midi_index,
+                (gint) new_midi_index));
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_ORANGE ": " DEBUG_COLOR_DEFAULT);
+        return new_midi_index;
+    }
 
-	return (guint) g_atomic_int_get(&midi_index);
+    return (guint) g_atomic_int_get(&midi_index);
 }
 
 
@@ -253,127 +246,124 @@ inc_midi_index(void)
  * can only be early (and always less than 1 full period early).
  *****************************************************************************/
 void
-set_midi_cycle_time(void)
-{
-	ATOMIC_TIMESTAMP        next_timeref;
-	ATOMIC_TIMESTAMP        timeref;
-	PHASEX_TIMESTAMP        last;
-	timecalc_t              delta_nsec;
-	timecalc_t              avg_period_nsec     = nsec_per_period;
-	static int              cycle_frame;
-	static int              last_cycle_frame;
+set_midi_cycle_time(void) {
+    ATOMIC_TIMESTAMP        next_timeref;
+    ATOMIC_TIMESTAMP        timeref;
+    PHASEX_TIMESTAMP        last;
+    timecalc_t              delta_nsec;
+    timecalc_t              avg_period_nsec     = nsec_per_period;
+    static int              cycle_frame;
+    static int              last_cycle_frame;
 
-	last.sec  = (int) audio_start_time.tv_sec;
-	last.nsec = (int) audio_start_time.tv_nsec;
+    last.sec  = (int) audio_start_time.tv_sec;
+    last.nsec = (int) audio_start_time.tv_nsec;
 
-	delta_nsec = get_time_delta(&audio_start_time);
+    delta_nsec = get_time_delta(&audio_start_time);
 
-	inc_midi_index();
+    inc_midi_index();
 
-	/* Delay between start_midi_clock() and first call to this
-	   function is not always determinate, so check for clock init
-	   and set timestamp here. */
-	if (last.nsec == PHASEX_CLOCK_INIT) {
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_YELLOW "!!! Clock Start !!! " DEBUG_COLOR_DEFAULT);
-		/* set initial timeref to match target audio wakeup phase. */
-		delta_nsec = nsec_per_frame * (timecalc_t)(audio_phase_lock);
-		next_timeref.timestamp.sec   = (int) audio_start_time.tv_sec;
-		next_timeref.timestamp.nsec  = (int) audio_start_time.tv_nsec;
-		next_timeref.timestamp.nsec -= (int)(delta_nsec);
-		g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
-	}
+    /* Delay between start_midi_clock() and first call to this
+       function is not always determinate, so check for clock init
+       and set timestamp here. */
+    if (last.nsec == PHASEX_CLOCK_INIT) {
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_YELLOW "!!! Clock Start !!! " DEBUG_COLOR_DEFAULT);
+        /* set initial timeref to match target audio wakeup phase. */
+        delta_nsec = nsec_per_frame * (timecalc_t)(audio_phase_lock);
+        next_timeref.timestamp.sec   = (int) audio_start_time.tv_sec;
+        next_timeref.timestamp.nsec  = (int) audio_start_time.tv_nsec;
+        next_timeref.timestamp.nsec -= (int)(delta_nsec);
+        g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
+    }
 
-	/* handle the normal case. */
-	else {
-		avg_period_nsec  -= (avg_period_nsec / 2048.0);
-		/* handle system clock wrapping around. */
-		if ((audio_start_time.tv_sec == 0) && (last.sec != 0)) {
-			avg_period_nsec += ((timecalc_t)(1000000000 +
-			                                 audio_start_time.tv_nsec -
-			                                 last.nsec) / 2048.0);
-		}
-		else {
-			avg_period_nsec += ((timecalc_t)(((audio_start_time.tv_sec -
-			                                   last.sec) * 1000000000) +
-			                                 (audio_start_time.tv_nsec -
-			                                  last.nsec)) / 2048.0);
-		}
-		nsec_per_period = avg_period_nsec;
-		nsec_per_frame  = (nsec_per_period / f_buffer_period_size);
-	}
-	timeref.gptr      = g_atomic_pointer_get(& (midi_timeref.gptr));
-	next_timeref.gptr = timeref.gptr;
-	last_cycle_frame = cycle_frame;
-	cycle_frame = (int)(delta_nsec / nsec_per_frame);
-	/* Latch the clock when audio wakes up before the calculated
-	   midi period start. coming in one frame too early is
-	   unfortunately common with non-rt kernels or missing
-	   realtime priveleges.  allow for an extra 2 frames. */
-	if (delta_nsec < (nsec_per_frame + nsec_per_frame)) {
-		next_timeref.timestamp.sec  = (int) audio_start_time.tv_sec;
-		next_timeref.timestamp.nsec = (int) audio_start_time.tv_nsec;
-		next_timeref.timestamp.nsec -= ((int)(nsec_per_period -
-		                                      (nsec_per_frame * (f_buffer_period_size -
-		                                                         audio_phase_lock))));
-		/* Nudge nsec_per_period in the right direction to
-		   speed up clock settling time. */
-		nsec_per_period -= (0.015625 * nsec_per_frame);
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_YELLOW "---|||%d||| " DEBUG_COLOR_DEFAULT,
-		             cycle_frame);
-	}
-	/* Half frame jitter correction for audio waking up too early,
-	   but within the current midi period. */
-	else if (delta_nsec < (nsec_per_frame * audio_phase_min)) {
-		next_timeref.timestamp.nsec -= ((int)(nsec_per_frame * 0.5));
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_CYAN "-<<" DEBUG_COLOR_LTBLUE "%d"
-		             DEBUG_COLOR_CYAN "<< " DEBUG_COLOR_DEFAULT,
-		             cycle_frame);
-	}
-	/* This condition is reached when the phase is locked. */
-	else if (delta_nsec < (nsec_per_frame * audio_phase_max)) {
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_LTBLUE "%d " DEBUG_COLOR_DEFAULT,
-		             cycle_frame);
-	}
-	/* Half frame jitter correction for audio waking up too late,
-	   but within the current midi period. coming in one frame too
-	   early is unfortunately common with non-rt kernels or
-	   missing realtime priveleges.  Allow for an extra frame as
-	   well as single isolated late wakeups. */
-	else if ((delta_nsec < (nsec_per_period + nsec_per_frame)) &&
-	         (last_cycle_frame < f_buffer_period_size)) {
-		next_timeref.timestamp.nsec += ((int)(nsec_per_frame * 0.5));
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_CYAN "+>>" DEBUG_COLOR_LTBLUE "%d"
-		             DEBUG_COLOR_CYAN ">> " DEBUG_COLOR_DEFAULT,
-		             cycle_frame);
-	}
-	/* Latch the clock when audio wakes up after the calculated
-	   midi period end. */
-	else {
-		next_timeref.timestamp.nsec += (int)(delta_nsec - (nsec_per_frame * audio_phase_lock));
-		/* Nudge nsec_per_period in the right direction to
-		   speed up clock settling time. */
-		nsec_per_period += (0.015625 * nsec_per_frame);
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_YELLOW "+++|||%d||| " DEBUG_COLOR_DEFAULT,
-		             cycle_frame);
-	}
-	/* Advance the timeref by one period */
-	next_timeref.timestamp.nsec += (int)(nsec_per_period);
-	if (next_timeref.timestamp.nsec >= 1000000000) {
-		next_timeref.timestamp.nsec -= 1000000000;
-		next_timeref.timestamp.sec  = (next_timeref.timestamp.sec + 1);
-	}
-	else if (next_timeref.timestamp.nsec < 0) {
-		next_timeref.timestamp.nsec += 1000000000;
-		next_timeref.timestamp.sec  = (next_timeref.timestamp.sec - 1);
-	}
-	g_atomic_int_add(&need_increment, 1);
-	g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
+    /* handle the normal case. */
+    else {
+        avg_period_nsec  -= (avg_period_nsec / 2048.0);
+        /* handle system clock wrapping around. */
+        if ((audio_start_time.tv_sec == 0) && (last.sec != 0)) {
+            avg_period_nsec += ((timecalc_t)(1000000000 +
+                                             audio_start_time.tv_nsec -
+                                             last.nsec) / 2048.0);
+        } else {
+            avg_period_nsec += ((timecalc_t)(((audio_start_time.tv_sec -
+                                               last.sec) * 1000000000) +
+                                             (audio_start_time.tv_nsec -
+                                              last.nsec)) / 2048.0);
+        }
+        nsec_per_period = avg_period_nsec;
+        nsec_per_frame  = (nsec_per_period / f_buffer_period_size);
+    }
+    timeref.gptr      = g_atomic_pointer_get(& (midi_timeref.gptr));
+    next_timeref.gptr = timeref.gptr;
+    last_cycle_frame = cycle_frame;
+    cycle_frame = (int)(delta_nsec / nsec_per_frame);
+    /* Latch the clock when audio wakes up before the calculated
+       midi period start. coming in one frame too early is
+       unfortunately common with non-rt kernels or missing
+       realtime priveleges.  allow for an extra 2 frames. */
+    if (delta_nsec < (nsec_per_frame + nsec_per_frame)) {
+        next_timeref.timestamp.sec  = (int) audio_start_time.tv_sec;
+        next_timeref.timestamp.nsec = (int) audio_start_time.tv_nsec;
+        next_timeref.timestamp.nsec -= ((int)(nsec_per_period -
+                                              (nsec_per_frame * (f_buffer_period_size -
+                                                  audio_phase_lock))));
+        /* Nudge nsec_per_period in the right direction to
+           speed up clock settling time. */
+        nsec_per_period -= (0.015625 * nsec_per_frame);
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_YELLOW "---|||%d||| " DEBUG_COLOR_DEFAULT,
+                     cycle_frame);
+    }
+    /* Half frame jitter correction for audio waking up too early,
+       but within the current midi period. */
+    else if (delta_nsec < (nsec_per_frame * audio_phase_min)) {
+        next_timeref.timestamp.nsec -= ((int)(nsec_per_frame * 0.5));
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_CYAN "-<<" DEBUG_COLOR_LTBLUE "%d"
+                     DEBUG_COLOR_CYAN "<< " DEBUG_COLOR_DEFAULT,
+                     cycle_frame);
+    }
+    /* This condition is reached when the phase is locked. */
+    else if (delta_nsec < (nsec_per_frame * audio_phase_max)) {
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_LTBLUE "%d " DEBUG_COLOR_DEFAULT,
+                     cycle_frame);
+    }
+    /* Half frame jitter correction for audio waking up too late,
+       but within the current midi period. coming in one frame too
+       early is unfortunately common with non-rt kernels or
+       missing realtime priveleges.  Allow for an extra frame as
+       well as single isolated late wakeups. */
+    else if ((delta_nsec < (nsec_per_period + nsec_per_frame)) &&
+             (last_cycle_frame < f_buffer_period_size)) {
+        next_timeref.timestamp.nsec += ((int)(nsec_per_frame * 0.5));
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_CYAN "+>>" DEBUG_COLOR_LTBLUE "%d"
+                     DEBUG_COLOR_CYAN ">> " DEBUG_COLOR_DEFAULT,
+                     cycle_frame);
+    }
+    /* Latch the clock when audio wakes up after the calculated
+       midi period end. */
+    else {
+        next_timeref.timestamp.nsec += (int)(delta_nsec - (nsec_per_frame * audio_phase_lock));
+        /* Nudge nsec_per_period in the right direction to
+           speed up clock settling time. */
+        nsec_per_period += (0.015625 * nsec_per_frame);
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_YELLOW "+++|||%d||| " DEBUG_COLOR_DEFAULT,
+                     cycle_frame);
+    }
+    /* Advance the timeref by one period */
+    next_timeref.timestamp.nsec += (int)(nsec_per_period);
+    if (next_timeref.timestamp.nsec >= 1000000000) {
+        next_timeref.timestamp.nsec -= 1000000000;
+        next_timeref.timestamp.sec  = (next_timeref.timestamp.sec + 1);
+    } else if (next_timeref.timestamp.nsec < 0) {
+        next_timeref.timestamp.nsec += 1000000000;
+        next_timeref.timestamp.sec  = (next_timeref.timestamp.sec - 1);
+    }
+    g_atomic_int_add(&need_increment, 1);
+    g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
 }
 
 
@@ -384,47 +374,43 @@ set_midi_cycle_time(void)
  * period.
  *****************************************************************************/
 unsigned int
-get_midi_cycle_frame(timecalc_t delta_nsec)
-{
-	int         cycle_frame = 0;
+get_midi_cycle_frame(timecalc_t delta_nsec) {
+    int         cycle_frame = 0;
 
-	if (delta_nsec >= 0.0) {
-		inc_midi_index();
-		cycle_frame = (int)(((delta_nsec * f_buffer_period_size) -
-		                     (nsec_per_frame)) / (nsec_per_period + nsec_per_frame));
-		if (cycle_frame <= 1) {
-			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-			             DEBUG_COLOR_YELLOW "-(%d)- " DEBUG_COLOR_DEFAULT,
-			             cycle_frame);
-		}
-		else {
-			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-			             DEBUG_COLOR_CYAN "-(%d)- " DEBUG_COLOR_DEFAULT,
-			             cycle_frame);
-		}
-	}
-	else {
-		cycle_frame = (int) buffer_period_size + (int)(delta_nsec / nsec_per_frame);
-		if (cycle_frame >= (int)(buffer_period_size - 1)) {
-			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-			             DEBUG_COLOR_YELLOW "={%d}= " DEBUG_COLOR_DEFAULT,
-			             cycle_frame);
-		}
-		else {
-			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-			             DEBUG_COLOR_CYAN "={%d}= " DEBUG_COLOR_DEFAULT,
-			             cycle_frame);
-		}
-	}
+    if (delta_nsec >= 0.0) {
+        inc_midi_index();
+        cycle_frame = (int)(((delta_nsec * f_buffer_period_size) -
+                             (nsec_per_frame)) / (nsec_per_period + nsec_per_frame));
+        if (cycle_frame <= 1) {
+            PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                         DEBUG_COLOR_YELLOW "-(%d)- " DEBUG_COLOR_DEFAULT,
+                         cycle_frame);
+        } else {
+            PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                         DEBUG_COLOR_CYAN "-(%d)- " DEBUG_COLOR_DEFAULT,
+                         cycle_frame);
+        }
+    } else {
+        cycle_frame = (int) buffer_period_size + (int)(delta_nsec / nsec_per_frame);
+        if (cycle_frame >= (int)(buffer_period_size - 1)) {
+            PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                         DEBUG_COLOR_YELLOW "={%d}= " DEBUG_COLOR_DEFAULT,
+                         cycle_frame);
+        } else {
+            PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                         DEBUG_COLOR_CYAN "={%d}= " DEBUG_COLOR_DEFAULT,
+                         cycle_frame);
+        }
+    }
 
-	/* calculated frame position is beyond current period. */
-	if (cycle_frame < 0) {
-		phasex_shutdown("*********** cycle_frame < 0 ***********");
-	}
-	if (cycle_frame >= (int) buffer_period_size) {
-		cycle_frame = (int) buffer_period_size - 1;
-	}
-	return (unsigned int) cycle_frame;
+    /* calculated frame position is beyond current period. */
+    if (cycle_frame < 0) {
+        phasex_shutdown("*********** cycle_frame < 0 ***********");
+    }
+    if (cycle_frame >= (int) buffer_period_size) {
+        cycle_frame = (int) buffer_period_size - 1;
+    }
+    return (unsigned int) cycle_frame;
 }
 
 
@@ -435,36 +421,35 @@ get_midi_cycle_frame(timecalc_t delta_nsec)
  * message is received less than 300ms after an active sensing message).
  *****************************************************************************/
 void
-set_active_sensing_timeout(void)
-{
-	ATOMIC_TIMESTAMP    new_timeout;
+set_active_sensing_timeout(void) {
+    ATOMIC_TIMESTAMP    new_timeout;
 #ifndef HAVE_CLOCK_GETTIME
-	struct timeval      walltime;
+    struct timeval      walltime;
 #endif
-	struct timespec     now;
+    struct timespec     now;
 
-	if (
+    if (
 #ifdef HAVE_CLOCK_GETTIME
-	    clock_gettime(midi_clockid, &now)
+        clock_gettime(midi_clockid, &now)
 #else
-	    gettimeofday(&walltime, NULL)
+        gettimeofday(&walltime, NULL)
 #endif
-	    == 0) {
+        == 0) {
 #ifndef HAVE_CLOCK_GETTIME
-		now.tv_sec  = walltime.tv_sec;
-		now.tv_nsec = walltime.tv_usec * 1000;
+        now.tv_sec  = walltime.tv_sec;
+        now.tv_nsec = walltime.tv_usec * 1000;
 #endif
-		new_timeout.timestamp.sec  = (int) now.tv_sec;
-		new_timeout.timestamp.nsec = (int) now.tv_nsec;
-		new_timeout.timestamp.nsec += 300000000;
-		if (new_timeout.timestamp.nsec >= 1000000000) {
-			new_timeout.timestamp.sec  += 1;
-			new_timeout.timestamp.nsec -= 1000000000;
-		}
-		g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeout.gptr);
-		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-		             DEBUG_COLOR_MAGENTA "---AAAAA--- " DEBUG_COLOR_DEFAULT);
-	}
+        new_timeout.timestamp.sec  = (int) now.tv_sec;
+        new_timeout.timestamp.nsec = (int) now.tv_nsec;
+        new_timeout.timestamp.nsec += 300000000;
+        if (new_timeout.timestamp.nsec >= 1000000000) {
+            new_timeout.timestamp.sec  += 1;
+            new_timeout.timestamp.nsec -= 1000000000;
+        }
+        g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeout.gptr);
+        PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                     DEBUG_COLOR_MAGENTA "---AAAAA--- " DEBUG_COLOR_DEFAULT);
+    }
 }
 
 
@@ -472,27 +457,26 @@ set_active_sensing_timeout(void)
  * check_active_sensing_timeout()
  *****************************************************************************/
 int
-check_active_sensing_timeout(void)
-{
-	ATOMIC_TIMESTAMP    timeout;
-	ATOMIC_TIMESTAMP    midi_clock;
+check_active_sensing_timeout(void) {
+    ATOMIC_TIMESTAMP    timeout;
+    ATOMIC_TIMESTAMP    midi_clock;
 
-	timeout.gptr = g_atomic_pointer_get(& (active_sensing_timeout.gptr));
-	if ((timeout.timestamp.sec != 0) && (timeout.timestamp.nsec != 0)) {
-		midi_clock.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
-		if ((timeout.timestamp.sec < midi_clock.timestamp.sec) ||
-		    ((timeout.timestamp.sec == midi_clock.timestamp.sec) &&
-		     (timeout.timestamp.nsec < midi_clock.timestamp.nsec))) {
-			timeout.timestamp.sec  = 0;
-			timeout.timestamp.nsec = 0;
-			g_atomic_pointer_set(& (active_sensing_timeout.gptr), timeout.gptr);
-			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
-			             DEBUG_COLOR_MAGENTA "---ZZZZZ--- " DEBUG_COLOR_DEFAULT);
-			return 1;
-		}
-		return -1;
-	}
-	return 0;
+    timeout.gptr = g_atomic_pointer_get(& (active_sensing_timeout.gptr));
+    if ((timeout.timestamp.sec != 0) && (timeout.timestamp.nsec != 0)) {
+        midi_clock.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
+        if ((timeout.timestamp.sec < midi_clock.timestamp.sec) ||
+                ((timeout.timestamp.sec == midi_clock.timestamp.sec) &&
+                 (timeout.timestamp.nsec < midi_clock.timestamp.nsec))) {
+            timeout.timestamp.sec  = 0;
+            timeout.timestamp.nsec = 0;
+            g_atomic_pointer_set(& (active_sensing_timeout.gptr), timeout.gptr);
+            PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
+                         DEBUG_COLOR_MAGENTA "---ZZZZZ--- " DEBUG_COLOR_DEFAULT);
+            return 1;
+        }
+        return -1;
+    }
+    return 0;
 }
 
 
@@ -505,9 +489,8 @@ check_active_sensing_timeout(void)
  * part the message is queued to.
  *****************************************************************************/
 void
-refresh_active_sensing_timeout(void)
-{
-	if (check_active_sensing_timeout() != 0) {
-		set_active_sensing_timeout();
-	}
+refresh_active_sensing_timeout(void) {
+    if (check_active_sensing_timeout() != 0) {
+        set_active_sensing_timeout();
+    }
 }

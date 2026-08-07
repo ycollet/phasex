@@ -30,29 +30,29 @@
 
 
 typedef struct alsa_seq_port {
-	int                         client;
-	int                         port;
-	unsigned int                type;
-	char                        *client_name;
-	char                        *port_name;
-	char                        alsa_name[16];
-	snd_seq_port_subscribe_t    *subs;
-	short                       subscribe_request;
-	short                       unsubscribe_request;
-	struct alsa_seq_port        *next;
+    int                         client;
+    int                         port;
+    unsigned int                type;
+    char                        *client_name;
+    char                        *port_name;
+    char                        alsa_name[16];
+    snd_seq_port_subscribe_t    *subs;
+    short                       subscribe_request;
+    short                       unsubscribe_request;
+    struct alsa_seq_port        *next;
 } ALSA_SEQ_PORT;
 
 typedef struct alsa_seq_info {
-	snd_seq_t                   *seq;
-	struct pollfd               *pfd;
-	int                         npfds;
-	short                       auto_hw;
-	short                       auto_sw;
-	ALSA_SEQ_PORT               *in_port;
-	ALSA_SEQ_PORT               *src_ports;
-	ALSA_SEQ_PORT               *capture_ports;
-	ALSA_SEQ_PORT               *playback_ports;
-	MIDI_EVENT                  event;
+    snd_seq_t                   *seq;
+    struct pollfd               *pfd;
+    int                         npfds;
+    short                       auto_hw;
+    short                       auto_sw;
+    ALSA_SEQ_PORT               *in_port;
+    ALSA_SEQ_PORT               *src_ports;
+    ALSA_SEQ_PORT               *capture_ports;
+    ALSA_SEQ_PORT               *playback_ports;
+    MIDI_EVENT                  event;
 } ALSA_SEQ_INFO;
 
 

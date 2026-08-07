@@ -41,73 +41,73 @@ extern "C" {
 #define GTK_IS_KNOB(obj)        GTK_CHECK_TYPE(obj, gtk_knob_get_type())
 
 
-	typedef struct _GtkKnob         GtkKnob;
-	typedef struct _GtkKnobClass    GtkKnobClass;
-	typedef struct _GtkKnobAnim     GtkKnobAnim;
+typedef struct _GtkKnob         GtkKnob;
+typedef struct _GtkKnobClass    GtkKnobClass;
+typedef struct _GtkKnobAnim     GtkKnobAnim;
 
 
-	/* better to make this an object and let widgets ref/deref it perhaps */
-	struct _GtkKnobAnim {
-		GdkPixbuf       *pixbuf;
-		gint            width;          /* derived from image width   */
-		gint            height;         /* derived from image height. */
-		gint            frame_width;    /* derived from pixbuf (width / height)
+/* better to make this an object and let widgets ref/deref it perhaps */
+struct _GtkKnobAnim {
+    GdkPixbuf       *pixbuf;
+    gint            width;          /* derived from image width   */
+    gint            height;         /* derived from image height. */
+    gint            frame_width;    /* derived from pixbuf (width / height)
 		                                   or provided override for rectangular frames */
-	};
+};
 
-	struct _GtkKnob {
-		GtkWidget       widget;
+struct _GtkKnob {
+    GtkWidget       widget;
 
-		/* update policy (GTK_UPDATE_[CONTINUOUS/DELAYED/DISCONTINUOUS]) */
-		guint           policy : 2;
+    /* update policy (GTK_UPDATE_[CONTINUOUS/DELAYED/DISCONTINUOUS]) */
+    guint           policy : 2;
 
-		/* State of widget (to do with user interaction) */
-		guint8          state;
-		gint            saved_x;
-		gint            saved_y;
+    /* State of widget (to do with user interaction) */
+    guint8          state;
+    gint            saved_x;
+    gint            saved_y;
 
-		/* ID of update timer, or 0 if none */
-		guint32         timer;
+    /* ID of update timer, or 0 if none */
+    guint32         timer;
 
-		/* knob animation */
-		GtkKnobAnim     *anim;
-		gint            width;
-		gint            height;
-		gint            frame_offset;
+    /* knob animation */
+    GtkKnobAnim     *anim;
+    gint            width;
+    gint            height;
+    gint            frame_offset;
 
-		GdkBitmap       *mask;
-		GdkGC           *mask_gc;
+    GdkBitmap       *mask;
+    GdkGC           *mask_gc;
 
-		/* Old values from adjustment stored so we know when something changes */
-		gfloat          old_value;
-		gfloat          old_lower;
-		gfloat          old_upper;
+    /* Old values from adjustment stored so we know when something changes */
+    gfloat          old_value;
+    gfloat          old_lower;
+    gfloat          old_upper;
 
-		/* The adjustment object that stores the data for this knob */
-		GtkAdjustment   *adjustment;
-	};
+    /* The adjustment object that stores the data for this knob */
+    GtkAdjustment   *adjustment;
+};
 
-	struct _GtkKnobClass {
-		GtkWidgetClass  parent_class;
-	};
-
-
-	extern int      knob_width[14];
-	extern int      knob_height[14];
+struct _GtkKnobClass {
+    GtkWidgetClass  parent_class;
+};
 
 
-	GtkWidget *gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim);
-	GType gtk_knob_get_type(void);
-	void gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment);
+extern int      knob_width[14];
+extern int      knob_height[14];
 
-	GtkKnobAnim *gtk_knob_animation_new_from_file_full(gchar *filename,
-	                                                   gint frame_width,
-	                                                   gint width,
-	                                                   gint height);
 
-	GtkKnobAnim *gtk_knob_animation_new_from_file(gchar *filename);
-	void gtk_knob_set_animation(GtkKnob *knob, GtkKnobAnim *anim);
-	void gtk_knob_animation_destroy(GtkKnobAnim *anim);
+GtkWidget *gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim);
+GType gtk_knob_get_type(void);
+void gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment);
+
+GtkKnobAnim *gtk_knob_animation_new_from_file_full(gchar *filename,
+        gint frame_width,
+        gint width,
+        gint height);
+
+GtkKnobAnim *gtk_knob_animation_new_from_file(gchar *filename);
+void gtk_knob_set_animation(GtkKnob *knob, GtkKnobAnim *anim);
+void gtk_knob_animation_destroy(GtkKnobAnim *anim);
 
 
 #ifdef __cplusplus

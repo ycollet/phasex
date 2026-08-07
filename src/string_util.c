@@ -32,93 +32,90 @@
  * ';' are always tokenized, regardless of leading or trailing whitespace.
  *****************************************************************************/
 char *
-get_next_token(char *inbuf)
-{
-	unsigned int    len;
-	int             in_quote        = 0;
-	static int      eob             = 1;
-	char            *token_begin;
-	static char     *t_index          = NULL;
-	static char     *last_inbuf     = NULL;
-	static char     token_buf[256];
+get_next_token(char *inbuf) {
+    unsigned int    len;
+    int             in_quote        = 0;
+    static int      eob             = 1;
+    char            *token_begin;
+    static char     *t_index          = NULL;
+    static char     *last_inbuf     = NULL;
+    static char     token_buf[256];
 
-	/* keep us out of trouble */
-	if ((inbuf == NULL) && (last_inbuf == NULL)) {
-		return NULL;
-	}
+    /* keep us out of trouble */
+    if ((inbuf == NULL) && (last_inbuf == NULL)) {
+        return NULL;
+    }
 
-	/* was end of buffer set last time? */
-	if (eob) {
-		eob = 0;
-		t_index = inbuf;
-	}
+    /* was end of buffer set last time? */
+    if (eob) {
+        eob = 0;
+        t_index = inbuf;
+    }
 
-	/* keep us out of more trouble */
-	if ((t_index == NULL) || (*t_index == '\0') ||
-	    (*t_index == '#') || (*t_index == '\n')) {
-		eob = 1;
-		return NULL;
-	}
+    /* keep us out of more trouble */
+    if ((t_index == NULL) || (*t_index == '\0') ||
+            (*t_index == '#') || (*t_index == '\n')) {
+        eob = 1;
+        return NULL;
+    }
 
-	/* skip past whitespace */
-	while ((*t_index == ' ') || (*t_index == '\t')) {
-		t_index++;
-	}
+    /* skip past whitespace */
+    while ((*t_index == ' ') || (*t_index == '\t')) {
+        t_index++;
+    }
 
-	/* check for quoted token */
-	if (*t_index == '"') {
-		in_quote = 1;
-		t_index++;
-	}
+    /* check for quoted token */
+    if (*t_index == '"') {
+        in_quote = 1;
+        t_index++;
+    }
 
-	/* we're at the start of the current token */
-	token_begin = t_index;
+    /* we're at the start of the current token */
+    token_begin = t_index;
 
-	/* go just past the last character of the token */
-	if (in_quote) {
-		/* an unterminated quote ends the token at end-of-line/buffer,
-		   rather than scanning past it looking for a closing '"' */
-		while ((*t_index != '"') && (*t_index != '\0') && (*t_index != '\n')) {
-			t_index++;
-		}
-		//t_index++;
-	}
-	else if ((*t_index == '{') || (*t_index == '}') ||
-	         (*t_index == ';') || (*t_index == '=') || (*t_index == ',')) {
-		t_index++;
-	}
-	else {
-		while ((*t_index != ' ')  && (*t_index != '\t') &&
-		       (*t_index != '{')  && (*t_index != '}')  &&
-		       (*t_index != ';')  && (*t_index != '=')  &&
-		       (*t_index != '\0') && (*t_index != '\n') &&
-		       (*t_index != '#')  && (*t_index != ',')) {
-			t_index++;
-		}
-	}
+    /* go just past the last character of the token */
+    if (in_quote) {
+        /* an unterminated quote ends the token at end-of-line/buffer,
+           rather than scanning past it looking for a closing '"' */
+        while ((*t_index != '"') && (*t_index != '\0') && (*t_index != '\n')) {
+            t_index++;
+        }
+        //t_index++;
+    } else if ((*t_index == '{') || (*t_index == '}') ||
+               (*t_index == ';') || (*t_index == '=') || (*t_index == ',')) {
+        t_index++;
+    } else {
+        while ((*t_index != ' ')  && (*t_index != '\t') &&
+                (*t_index != '{')  && (*t_index != '}')  &&
+                (*t_index != ';')  && (*t_index != '=')  &&
+                (*t_index != '\0') && (*t_index != '\n') &&
+                (*t_index != '#')  && (*t_index != ',')) {
+            t_index++;
+        }
+    }
 
-	/* check for end of buffer (null, newline, or comment delim) */
-	if ((t_index == token_begin) &&
-	    ((*t_index == '\0') || (*t_index == '\n') || (*t_index == '#'))) {
-		eob = 1;
-		return NULL;
-	}
+    /* check for end of buffer (null, newline, or comment delim) */
+    if ((t_index == token_begin) &&
+            ((*t_index == '\0') || (*t_index == '\n') || (*t_index == '#'))) {
+        eob = 1;
+        return NULL;
+    }
 
-	/* copy the token to our static buffer and terminate */
-	len = (long unsigned int)(t_index - token_begin) % sizeof(token_buf);
-	memcpy(token_buf, token_begin, len);
-	token_buf[len] = '\0';
+    /* copy the token to our static buffer and terminate */
+    len = (long unsigned int)(t_index - token_begin) % sizeof(token_buf);
+    memcpy(token_buf, token_begin, len);
+    token_buf[len] = '\0';
 
-	/* skip past closing quote, if one was actually found */
-	if (in_quote && (*t_index == '"')) {
-		t_index++;
-	}
+    /* skip past closing quote, if one was actually found */
+    if (in_quote && (*t_index == '"')) {
+        t_index++;
+    }
 
-	/* skip past whitespace */
-	while ((*t_index == ' ') || (*t_index == '\t')) {
-		t_index++;
-	}
+    /* skip past whitespace */
+    while ((*t_index == ' ') || (*t_index == '\t')) {
+        t_index++;
+    }
 
-	/* return the address to the token buffer */
-	return token_buf;
+    /* return the address to the token buffer */
+    return token_buf;
 }

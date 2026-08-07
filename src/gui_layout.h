@@ -36,23 +36,23 @@
 
 /* Parameter group, with array of parameter IDs */
 typedef struct param_group {
-	gchar           *name;          /* Name to use for naming frame widget  */
-	gchar           *label;         /* Frame label for parameter group      */
-	int             full_x;         /* Table column in fullscreen layout    */
-	int             group_order;    /* Layout specific ordering             */
-	int             notebook_page;  /* Tab number, starting at 0            */
-	int             notebook_x;     /* Table column in notebook layout      */
-	int             wide_x;         /* Table column in widescreen layout    */
-	int             param_list[16]; /* List of up to 15 parameters          */
-	GtkWidget       *event;
-	GtkWidget       *frame;
-	GtkWidget       *frame_event;
-	GtkWidget       *table;
+    gchar           *name;          /* Name to use for naming frame widget  */
+    gchar           *label;         /* Frame label for parameter group      */
+    int             full_x;         /* Table column in fullscreen layout    */
+    int             group_order;    /* Layout specific ordering             */
+    int             notebook_page;  /* Tab number, starting at 0            */
+    int             notebook_x;     /* Table column in notebook layout      */
+    int             wide_x;         /* Table column in widescreen layout    */
+    int             param_list[16]; /* List of up to 15 parameters          */
+    GtkWidget       *event;
+    GtkWidget       *frame;
+    GtkWidget       *frame_event;
+    GtkWidget       *table;
 } PARAM_GROUP;
 
 /* Parameter page definition */
 typedef struct param_page {
-	gchar           *label;         /* Label for GUI page                   */
+    gchar           *label;         /* Label for GUI page                   */
 } PARAM_PAGE;
 
 

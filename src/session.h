@@ -29,13 +29,13 @@
 
 
 typedef struct session {
-	char            *name;                  /* Session name */
-	char            *directory;             /* session directory name */
-	char            *parent_dir;            /* parent to session directory */
-	int             modified;               /* flag to track session modification */
-	unsigned int    prog_num[MAX_PARTS];    /* per-part program number for this session */
-	PATCH           patch[MAX_PARTS];       /* per-part patches for this session */
-	PATCH_STATE     state[MAX_PARTS];       /* per-part patch state for this session */
+    char            *name;                  /* Session name */
+    char            *directory;             /* session directory name */
+    char            *parent_dir;            /* parent to session directory */
+    int             modified;               /* flag to track session modification */
+    unsigned int    prog_num[MAX_PARTS];    /* per-part program number for this session */
+    PATCH           patch[MAX_PARTS];       /* per-part patches for this session */
+    PATCH_STATE     state[MAX_PARTS];       /* per-part patch state for this session */
 } SESSION;
 
 

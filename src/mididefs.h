@@ -87,34 +87,34 @@
 
 /* PHASEX MIDI event structure */
 typedef struct midi_event {
-	union {
-		volatile gint       state;
-		int                 frame;
-	} __attribute__((__transparent_union__));
-	unsigned char       type;
-	unsigned char       channel;
-	union {
-		unsigned char       note;
-		unsigned char       controller;
-		unsigned char       program;
-		unsigned char       polypressure;
-		unsigned char       pitchbend;
-		unsigned char       lsb;
-		unsigned char       byte2;
-		unsigned char       parameter;
-	} __attribute__((__transparent_union__));
-	union {
-		unsigned char       velocity;
-		unsigned char       aftertouch;
-		unsigned char       value;
-		unsigned char       msb;
-		unsigned char       byte3;
-	} __attribute__((__transparent_union__));
-	sample_t            float_value;
-	union {
-		struct midi_event   *next;
-		volatile gpointer   gnext;
-	} __attribute__((__transparent_union__));
+    union {
+        volatile gint       state;
+        int                 frame;
+    } __attribute__((__transparent_union__));
+    unsigned char       type;
+    unsigned char       channel;
+    union {
+        unsigned char       note;
+        unsigned char       controller;
+        unsigned char       program;
+        unsigned char       polypressure;
+        unsigned char       pitchbend;
+        unsigned char       lsb;
+        unsigned char       byte2;
+        unsigned char       parameter;
+    } __attribute__((__transparent_union__));
+    union {
+        unsigned char       velocity;
+        unsigned char       aftertouch;
+        unsigned char       value;
+        unsigned char       msb;
+        unsigned char       byte3;
+    } __attribute__((__transparent_union__));
+    sample_t            float_value;
+    union {
+        struct midi_event   *next;
+        volatile gpointer   gnext;
+    } __attribute__((__transparent_union__));
 } MIDI_EVENT;
 
 

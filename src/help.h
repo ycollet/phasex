@@ -28,8 +28,8 @@
 
 
 typedef struct param_help {
-	char    *label;     /* Full parameter name      */
-	char    *text;      /* Parameter help text      */
+    char    *label;     /* Full parameter name      */
+    char    *text;      /* Parameter help text      */
 } PARAM_HELP;
 
 

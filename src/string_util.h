@@ -25,8 +25,8 @@
 
 
 typedef struct string_list {
-	char                *strval;
-	struct string_list  *next;
+    char                *strval;
+    struct string_list  *next;
 } STRING_LIST;
 
 

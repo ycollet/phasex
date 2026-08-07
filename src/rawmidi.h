@@ -41,14 +41,14 @@
 
 
 typedef struct rawmidi_info {
-	char                *device;
+    char                *device;
 #if defined(ENABLE_RAWMIDI_OSS) || defined(ENABLE_RAWMIDI_GENERIC)
-	int                 fd;
+    int                 fd;
 #endif
 #ifdef ENABLE_RAWMIDI_ALSA_RAW
-	snd_rawmidi_t       *handle;
-	struct pollfd       *pfds;
-	int                 npfds;
+    snd_rawmidi_t       *handle;
+    struct pollfd       *pfds;
+    int                 npfds;
 #endif
 } RAWMIDI_INFO;
 
@@ -56,16 +56,16 @@ typedef struct rawmidi_info {
 #ifdef ENABLE_RAWMIDI_ALSA_RAW
 
 typedef struct alsa_rawmidi_hw_info {
-	int                         card_num;
-	int                         device_num;
-	int                         subdevice_num;
-	int                         connect_request;
-	int                         disconnect_request;
-	char                        *device_id;
-	char                        *device_name;
-	char                        *subdevice_name;
-	char                        alsa_name[32];
-	struct alsa_rawmidi_hw_info *next;
+    int                         card_num;
+    int                         device_num;
+    int                         subdevice_num;
+    int                         connect_request;
+    int                         disconnect_request;
+    char                        *device_id;
+    char                        *device_name;
+    char                        *subdevice_name;
+    char                        alsa_name[32];
+    struct alsa_rawmidi_hw_info *next;
 } ALSA_RAWMIDI_HW_INFO;
 
 #endif

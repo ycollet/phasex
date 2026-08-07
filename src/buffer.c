@@ -52,19 +52,18 @@ int             need_index_resync[MAX_PARTS];
  * init_buffer_indices()
  *****************************************************************************/
 void
-init_buffer_indices(int resync)
-{
-	int             part_num;
+init_buffer_indices(int resync) {
+    int             part_num;
 
-	g_atomic_int_set(&need_increment, 0);
-	set_audio_index(buffer_size - buffer_latency);
-	set_engine_index(0);
-	set_midi_index(0);
-	if (resync) {
-		for (part_num = 0; part_num < MAX_PARTS; part_num++) {
-			need_index_resync[part_num] = 1;
-		}
-	}
+    g_atomic_int_set(&need_increment, 0);
+    set_audio_index(buffer_size - buffer_latency);
+    set_engine_index(0);
+    set_midi_index(0);
+    if (resync) {
+        for (part_num = 0; part_num < MAX_PARTS; part_num++) {
+            need_index_resync[part_num] = 1;
+        }
+    }
 }
 
 
@@ -81,10 +80,9 @@ init_buffer_indices(int resync)
  * value for write_index.
  *****************************************************************************/
 unsigned int
-test_midi_index(unsigned int val)
-{
-	volatile gint   *addr = &midi_index;
-	return (g_atomic_int_get(addr) == (gint) val);
+test_midi_index(unsigned int val) {
+    volatile gint   *addr = &midi_index;
+    return (g_atomic_int_get(addr) == (gint) val);
 }
 
 
@@ -94,10 +92,9 @@ test_midi_index(unsigned int val)
  * Atomically reads midi_write_index.
  *****************************************************************************/
 unsigned int
-get_midi_index(void)
-{
-	volatile gint   *addr = &midi_index;
-	return (unsigned int) g_atomic_int_get(addr);
+get_midi_index(void) {
+    volatile gint   *addr = &midi_index;
+    return (unsigned int) g_atomic_int_get(addr);
 }
 
 
@@ -108,10 +105,9 @@ get_midi_index(void)
  * Atomically sets midi_write_index to <val>.
  *****************************************************************************/
 void
-set_midi_index(unsigned int val)
-{
-	volatile gint   *addr = &midi_index;
-	g_atomic_int_set(addr, (gint) val);
+set_midi_index(unsigned int val) {
+    volatile gint   *addr = &midi_index;
+    g_atomic_int_set(addr, (gint) val);
 }
 
 
@@ -127,10 +123,9 @@ set_midi_index(unsigned int val)
  * Atomically reads engine_index.
  *****************************************************************************/
 unsigned int
-get_engine_index(void)
-{
-	volatile gint   *addr = &engine_index;
-	return (unsigned int) g_atomic_int_get(addr);
+get_engine_index(void) {
+    volatile gint   *addr = &engine_index;
+    return (unsigned int) g_atomic_int_get(addr);
 }
 
 
@@ -141,10 +136,9 @@ get_engine_index(void)
  * Atomically sets engine_index to <val>.
  *****************************************************************************/
 void
-set_engine_index(unsigned int val)
-{
-	volatile gint   *addr = &engine_index;
-	g_atomic_int_set(addr, (gint) val);
+set_engine_index(unsigned int val) {
+    volatile gint   *addr = &engine_index;
+    g_atomic_int_set(addr, (gint) val);
 }
 
 
@@ -160,10 +154,9 @@ set_engine_index(unsigned int val)
  * Atomically reads audio_index.
  *****************************************************************************/
 unsigned int
-get_audio_index(void)
-{
-	volatile gint   *addr = &audio_index;
-	return (unsigned int) g_atomic_int_get(addr);
+get_audio_index(void) {
+    volatile gint   *addr = &audio_index;
+    return (unsigned int) g_atomic_int_get(addr);
 }
 
 /*****************************************************************************
@@ -172,14 +165,13 @@ get_audio_index(void)
  * Atomically increments audio_index by the supplied number of frames.
  *****************************************************************************/
 void
-inc_audio_index(unsigned int nframes)
-{
-	volatile gint   *addr = &audio_index;
-	guint           old_read_index;
-	guint           new_read_index;
-	old_read_index = (guint) g_atomic_int_get(addr);
-	new_read_index = ((old_read_index + nframes) & buffer_size_mask);
-	g_atomic_int_set(addr, (gint) new_read_index);
+inc_audio_index(unsigned int nframes) {
+    volatile gint   *addr = &audio_index;
+    guint           old_read_index;
+    guint           new_read_index;
+    old_read_index = (guint) g_atomic_int_get(addr);
+    new_read_index = ((old_read_index + nframes) & buffer_size_mask);
+    g_atomic_int_set(addr, (gint) new_read_index);
 }
 
 /*****************************************************************************
@@ -189,8 +181,7 @@ inc_audio_index(unsigned int nframes)
  * Atomically sets audio_index to <val>.
  *****************************************************************************/
 void
-set_audio_index(unsigned int val)
-{
-	volatile gint   *addr = &audio_index;
-	g_atomic_int_set(addr, (gint) val);
+set_audio_index(unsigned int val) {
+    volatile gint   *addr = &audio_index;
+    g_atomic_int_set(addr, (gint) val);
 }
