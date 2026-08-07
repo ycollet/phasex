@@ -886,7 +886,8 @@ alsa_pcm_init(void)
 	}
 #endif
 
-	strncpy(new_pcm_info->pcm_name, alsa_pcm_device, sizeof(new_pcm_info->pcm_name));
+	strncpy(new_pcm_info->pcm_name, alsa_pcm_device, sizeof(new_pcm_info->pcm_name) - 1);
+	new_pcm_info->pcm_name[sizeof(new_pcm_info->pcm_name) - 1] = '\0';
 	PHASEX_DEBUG(DEBUG_CLASS_INIT,
 	             "ALSA PCM audio setup for [%s] complete!\n",
 	             new_pcm_info->pcm_name);

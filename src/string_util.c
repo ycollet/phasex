@@ -106,7 +106,7 @@ get_next_token(char *inbuf)
 
 	/* copy the token to our static buffer and terminate */
 	len = (long unsigned int)(t_index - token_begin) % sizeof(token_buf);
-	strncpy(token_buf, token_begin, len);
+	memcpy(token_buf, token_begin, len);
 	token_buf[len] = '\0';
 
 	/* skip past closing quote, if one was actually found */

@@ -266,7 +266,6 @@ load_session_bank(char *filename)
 	char            *streambuf;
 	unsigned int    part_num    = 0;
 	unsigned int    sess_num    = 0;
-	int             line        = 0;
 	int             result;
 	char            loaded[SESSION_BANK_SIZE];
 
@@ -297,7 +296,6 @@ load_session_bank(char *filename)
 
 	/* read session_bank entries */
 	while (fgets(buffer, sizeof(buffer), session_bank_f) != NULL) {
-		line++;
 
 		/* discard comments and blank lines */
 		if ((buffer[0] == '\n') || (buffer[0] == '#')) {
@@ -451,12 +449,13 @@ save_session(char *directory, unsigned int sess_num, int managed)
 			if (mkdir(directory, 0755) != 0) {
 				PHASEX_ERROR("Unable to create session directory '%s'.\n", directory);
 				PHASEX_ERROR("Error %d: %s\n", errno, strerror(errno));
-				closedir(dir);
 				return -1;
 			}
 		}
 	}
-	closedir(dir);
+	else {
+		closedir(dir);
+	}
 
 	snprintf(filename, sizeof(filename), "%s/phasex.map", directory);
 	save_midimap(filename);

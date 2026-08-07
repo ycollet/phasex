@@ -135,7 +135,6 @@ load_patch_bank(char *filename)
 	char            buffer[256];
 	int             part_num    = 0;
 	int             prog        = 0;
-	unsigned int    line        = 0;
 	static int      once        = 1;
 	int             result;
 
@@ -157,7 +156,6 @@ load_patch_bank(char *filename)
 
 	/* read bank entries */
 	while (fgets(buffer, sizeof(buffer), bank_f) != NULL) {
-		line++;
 
 		/* discard comments and blank lines */
 		if ((buffer[0] == '\n') || (buffer[0] == '#')) {

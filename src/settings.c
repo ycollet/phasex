@@ -248,7 +248,6 @@ read_settings(char *filename)
 	char    buffer[256];
 	char    c;
 	int     prio;
-	int     line                = 0;
 
 	/* use default config file location if no filename is supplied. */
 	if (config_file == NULL) {
@@ -259,7 +258,7 @@ read_settings(char *filename)
 	}
 	if (filename == NULL) {
 		if (config_file == NULL) {
-			if (user_config_file == NULL) {
+			if (user_config_file[0] == '\0') {
 				PHASEX_WARN("No config file specified.  Configuration not read.\n");
 				if (old_config != NULL) {
 					free(old_config);
@@ -281,7 +280,6 @@ read_settings(char *filename)
 
 		/* read config settings */
 		while (fgets(buffer, sizeof(buffer), config_f) != NULL) {
-			line++;
 
 			/* discard comments and blank lines */
 			if ((buffer[0] == '\n') || (buffer[0] == '#')) {
@@ -871,7 +869,7 @@ save_settings(char *filename)
 	}
 	if (filename == NULL) {
 		if (config_file == NULL) {
-			if (user_config_file == NULL) {
+			if (user_config_file[0] == '\0') {
 				PHASEX_WARN("No config file specified.  Configuration not written.\n");
 				if (old_config != NULL) {
 					free(old_config);

@@ -327,7 +327,6 @@ read_patch(char *filename, PATCH *patch)
 	char            buffer[128];
 	char            c;
 	int             j;
-	int             line        = 0;
 	int             dir_found   = 0;
 	int             cc_val;
 	unsigned int    param_num;
@@ -435,7 +434,6 @@ read_patch(char *filename, PATCH *patch)
 
 	/* read patch entries */
 	while (fgets(buffer, sizeof(buffer), patch_f) != NULL) {
-		line++;
 
 		/* discard comments and blank lines */
 		if ((buffer[0] == '\n') || (buffer[0] == '#')) {

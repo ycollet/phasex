@@ -34,7 +34,7 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <libgen.h>
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 #include "phasex.h"
 #include "config.h"
 #include "driver.h"
