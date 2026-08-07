@@ -1042,38 +1042,6 @@ set_fullscreen_mode(GtkWidget *widget, gpointer UNUSED(data1), gpointer data2)
 
 
 /*****************************************************************************
- * set_maximize_mode()
- *****************************************************************************/
-void
-set_maximize_mode(GtkWidget *UNUSED(widget), gpointer data)
-{
-	int     new_mode = (int)((long int) data);
-
-	/* only do something if changing modes */
-	if (new_mode != setting_maximize) {
-		if (new_mode) {
-			setting_maximize = MAXIMIZE_ON;
-			if (setting_fullscreen) {
-				setting_fullscreen = FULLSCREEN_OFF;
-				gtk_window_unfullscreen(GTK_WINDOW(main_window));
-			}
-			gtk_window_set_decorated(GTK_WINDOW(main_window), TRUE);
-			gtk_window_maximize(GTK_WINDOW(main_window));
-			if ((menu_item_fullscreen != NULL)) {
-				gtk_check_menu_item_set_active(menu_item_fullscreen, FALSE);
-			}
-		}
-		else {
-			setting_maximize = MAXIMIZE_OFF;
-			gtk_window_unmaximize(GTK_WINDOW(main_window));
-		}
-
-		save_settings(NULL);
-	}
-}
-
-
-/*****************************************************************************
  * set_window_layout()
  *****************************************************************************/
 void

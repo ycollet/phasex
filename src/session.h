@@ -61,7 +61,6 @@ extern int          session_name_changed;
 
 SESSION *get_current_session(void);
 SESSION *get_session(unsigned int session_num);
-PATCH *set_patch_from_session_bank(unsigned int part_num, unsigned int session_num);
 void init_session_bank(char *filename);
 void load_session_bank(char *filename);
 void save_session_bank(char *filename);

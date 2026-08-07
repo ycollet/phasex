@@ -78,23 +78,6 @@ get_session(unsigned int sess_num)
 
 
 /*****************************************************************************
- * set_patch_from_session_bank()
- *****************************************************************************/
-PATCH *
-set_patch_from_session_bank(unsigned int sess_num, unsigned int part_num)
-{
-	if (sess_num >= SESSION_BANK_SIZE) {
-		sess_num = 0;
-	}
-
-	active_patch[part_num] = & (session_bank[sess_num].patch[part_num]);
-	active_state[part_num] = & (session_bank[sess_num].state[part_num]);
-
-	return active_patch[part_num];
-}
-
-
-/*****************************************************************************
  * init_session_patch_bank()
  *****************************************************************************/
 void

@@ -39,7 +39,6 @@ void update_gui_session_name(void);
 void update_gui_session_number(void);
 void update_gui_part_number(void);
 void update_gui_program_number(void);
-int patch_visible(PATCH *patch);
 void update_gui_patch_modified(void);
 void update_gui_session_modified(void);
 void update_gui_patch_changed(PATCH *patch, int part_switch);

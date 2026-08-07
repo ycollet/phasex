@@ -233,7 +233,6 @@ unsigned int get_visible_program_number(void);
 PATCH *get_patch(unsigned int sess_num, unsigned int part_num, unsigned int prog_num);
 PATCH *get_visible_patch(void);
 struct part *get_visible_part(void);
-PATCH_STATE *get_patch_state(unsigned int sess_num, unsigned int part_num, unsigned int prog_num);
 PATCH_STATE *get_active_state(unsigned int part_num);
 PATCH *get_active_patch(unsigned int part_num);
 PATCH *set_active_patch(unsigned int sess_num, unsigned int part_num, unsigned int prog_num);

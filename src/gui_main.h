@@ -57,7 +57,6 @@ extern int              start_gui;
 
 
 void *gtkui_thread(void *arg);
-void start_gtkui_thread(void);
 
 void create_file_filters(void);
 

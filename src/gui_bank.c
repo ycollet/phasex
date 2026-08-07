@@ -580,42 +580,6 @@ load_program(GtkWidget *UNUSED(widget), gpointer data)
 
 
 /*****************************************************************************
- * bank_autosave_activate()
- *****************************************************************************/
-void
-bank_autosave_activate(GtkWidget *widget, gpointer UNUSED(data))
-{
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
-		setting_bank_mem_mode = BANK_MEM_AUTOSAVE;
-	}
-}
-
-
-/*****************************************************************************
- * bank_warn_activate()
- *****************************************************************************/
-void
-bank_warn_activate(GtkWidget *widget, gpointer UNUSED(data))
-{
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
-		setting_bank_mem_mode = BANK_MEM_WARN;
-	}
-}
-
-
-/*****************************************************************************
- * bank_protect_activate()
- *****************************************************************************/
-void
-bank_protect_activate(GtkWidget *widget, gpointer UNUSED(data))
-{
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
-		setting_bank_mem_mode = BANK_MEM_PROTECT;
-	}
-}
-
-
-/*****************************************************************************
  * set_patch_io_start()
  *****************************************************************************/
 void

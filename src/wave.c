@@ -839,29 +839,6 @@ osc_table_hermite(int wave_num, sample_t sample_index)
 
 
 /*****************************************************************************
- * osc_table_linear()
- *
- * Read from oscillator wavetable using linear interpolation.
- *****************************************************************************/
-sample_t
-osc_table_linear(int wave_num, sample_t sample_index)
-{
-	sample_t    y0;
-	sample_t    y1;
-	sample_t    index_floor;
-	int         index_int;
-
-	index_floor = (sample_t) MATH_FLOOR(sample_index);
-	index_int = (((int) index_floor) + WAVEFORM_SIZE + WAVEFORM_SIZE) % WAVEFORM_SIZE;
-
-	y0 = osc_table[wave_num][index_int];
-	y1 = osc_table[wave_num][index_int + 1];
-
-	return (y0 + (y1 - y0) * (sample_index - index_floor));
-}
-
-
-/*****************************************************************************
  *
  * Functions for the generating the waveform samples
  * The synth engine should never use these directly due to overhead.

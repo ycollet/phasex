@@ -231,32 +231,6 @@ gtk_knob_destroy(GtkObject *object)
 
 
 /*****************************************************************************
- * gtk_knob_get_adjustment()
- *****************************************************************************/
-GtkAdjustment *
-gtk_knob_get_adjustment(GtkKnob *knob)
-{
-	g_return_val_if_fail((knob != NULL), NULL);
-	g_return_val_if_fail(GTK_IS_KNOB(knob), NULL);
-
-	return knob->adjustment;
-}
-
-
-/*****************************************************************************
- * gtk_knob_set_update_policy()
- *****************************************************************************/
-void
-gtk_knob_set_update_policy(GtkKnob *knob, GtkUpdateType policy)
-{
-	g_return_if_fail(knob != NULL);
-	g_return_if_fail(GTK_IS_KNOB(knob));
-
-	knob->policy = policy;
-}
-
-
-/*****************************************************************************
  * gtk_knob_set_frame_offset()
  *****************************************************************************/
 gint

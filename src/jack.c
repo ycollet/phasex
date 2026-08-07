@@ -83,7 +83,6 @@ jack_port_t             *midi_input_port            = NULL;
 pthread_mutex_t         sample_rate_mutex;
 
 pthread_cond_t          sample_rate_cond            = PTHREAD_COND_INITIALIZER;
-pthread_cond_t          jack_client_cond            = PTHREAD_COND_INITIALIZER;
 
 int                     jack_running                = 0;
 
@@ -1336,49 +1335,4 @@ jack_watchdog_cycle(void)
 			cur = cur->next;
 		}
 	}
-}
-
-
-/*****************************************************************************
- * jack_audio_thread()
- *****************************************************************************/
-void *
-jack_audio_thread(void *UNUSED(arg))
-{
-	struct sched_param  schedparam;
-	pthread_t           thread_id;
-
-	/* set realtime scheduling and priority */
-	thread_id = pthread_self();
-	memset(&schedparam, 0, sizeof(struct sched_param));
-	schedparam.sched_priority = setting_audio_priority;
-	pthread_setschedparam(thread_id, setting_sched_policy, &schedparam);
-
-	/* setup thread cleanup handler */
-	//pthread_cleanup_push (&alsa_pcm_cleanup, NULL);
-
-	PHASEX_DEBUG(DEBUG_CLASS_AUDIO, "Starting JACK AUDIO thread...\n");
-
-	/* broadcast the audio ready condition */
-	pthread_mutex_lock(&audio_ready_mutex);
-	audio_ready = 1;
-	pthread_cond_broadcast(&audio_ready_cond);
-	pthread_mutex_unlock(&audio_ready_mutex);
-
-	/* initialize buffer indices and set reference clock. */
-	init_buffer_indices(1);
-	start_midi_clock();
-
-	jack_start();
-
-	while (!audio_stopped && !pending_shutdown) {
-		usleep(125000);
-	}
-
-	/* execute cleanup handler and remove it */
-	//pthread_cleanup_pop (1);
-
-	/* end of MIDI thread */
-	pthread_exit(NULL);
-	return NULL;
 }

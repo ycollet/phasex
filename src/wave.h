@@ -98,7 +98,6 @@ sample_t hermite(sample_t *buf, unsigned int max, sample_t sample_index);
 #endif
 sample_t chorus_hermite(sample_t *buf, sample_t sample_index);
 sample_t osc_table_hermite(int wave_num, sample_t sample_index);
-sample_t osc_table_linear(int wave_num, sample_t sample_index);
 
 
 /* these are the functions for building the initial waveforms */

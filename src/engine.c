@@ -57,7 +57,6 @@ CHORUS          per_part_chorus[MAX_PARTS];
 GLOBAL          global;
 
 pthread_mutex_t engine_ready_mutex;
-pthread_cond_t  engine_ready_cond           = PTHREAD_COND_INITIALIZER;
 volatile gint   engine_ready[MAX_PARTS];
 
 int             sample_rate                 = 0;

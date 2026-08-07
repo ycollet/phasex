@@ -56,10 +56,6 @@ void select_program(GtkWidget *widget, gpointer data);
 void save_program(GtkWidget *UNUSED(widget), gpointer data);
 void load_program(GtkWidget *UNUSED(widget), gpointer data);
 
-void bank_autosave_activate(GtkWidget *widget, gpointer UNUSED(data));
-void bank_warn_activate(GtkWidget *widget, gpointer UNUSED(data));
-void bank_protect_activate(GtkWidget *widget, gpointer UNUSED(data));
-
 void set_patch_io_start(GtkWidget *widget, gpointer UNUSED(data));
 void create_patch_load_dialog(void);
 void run_patch_load_dialog(GtkWidget *UNUSED(widget), gpointer UNUSED(data));

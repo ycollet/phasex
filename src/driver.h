@@ -93,8 +93,6 @@ void wait_audio_stop(void);
 void wait_midi_stop(void);
 void stop_audio(void);
 void stop_midi(void);
-void restart_audio(void);
-void restart_midi(void);
 void phasex_watchdog(void);
 void scan_audio_and_midi(void);
 int  audio_driver_running(void);

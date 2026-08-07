@@ -238,38 +238,6 @@ alsa_pcm_hw_list_free(ALSA_PCM_HW_INFO *hw_list)
 
 
 /*****************************************************************************
- * alsa_pcm_hw_list_compare()
- *****************************************************************************/
-int
-alsa_pcm_hw_list_compare(ALSA_PCM_HW_INFO *a, ALSA_PCM_HW_INFO *b)
-{
-	ALSA_PCM_HW_INFO    *cur_a = a;
-	ALSA_PCM_HW_INFO    *cur_b = b;
-
-	while (cur_a != NULL) {
-		if ((cur_b == NULL) ||
-		    (cur_a->card_num != cur_b->card_num) ||
-		    (cur_a->device_num != cur_b->device_num) ||
-		    (cur_a->subdevice_num != cur_b->subdevice_num) ||
-		    (strcmp(cur_a->card_id, cur_b->card_id) != 0) ||
-		    (strcmp(cur_a->card_name, cur_b->card_name) != 0) ||
-		    (strcmp(cur_a->device_id, cur_b->device_id) != 0) ||
-		    (strcmp(cur_a->device_name, cur_b->device_name) != 0) ||
-		    (strcmp(cur_a->subdevice_name, cur_b->subdevice_name) != 0)) {
-			return 1;
-		}
-		cur_a = cur_a->next;
-		cur_b = cur_b->next;
-	}
-	if (cur_b != NULL) {
-		return 1;
-	}
-
-	return 0;
-}
-
-
-/*****************************************************************************
  * alsa_pcm_set_hwparams()
  *****************************************************************************/
 static int

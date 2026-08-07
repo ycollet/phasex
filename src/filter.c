@@ -138,61 +138,6 @@ build_filter_tables(void)
 
 
 /*****************************************************************************
- * filter_osc_table_12dB()
- *
- * Apply lowpass filter to wavetable for bandlimiting oscillators.
- *****************************************************************************/
-#ifdef FILTER_WAVETABLE_12DB
-void
-filter_osc_table_12dB(int wave_num, int num_cycles, double octaves)
-{
-	int         j;
-	int         cycle;
-	int         sample;
-	int         oversample  = 23;
-	sample_t    f;
-	sample_t    q;
-	sample_t    hp          = 0.0;
-	sample_t    bp          = 0.0;
-	sample_t    lp          = 0.0;
-
-	/* set cutoff at N ocatves above the principal */
-	f = (sample_t) sin(M_PI * 2.0 * (pow(2.0, octaves)) /
-	                   (F_WAVEFORM_SIZE * (double) oversample));
-
-	/* zero resonance for simple bandlimiting */
-	q = 1.0;
-
-	/* run seven cycles of the waveform through the filter. */
-	/* dump the output of the filter into the osc table on seventh run */
-	for (cycle = 1; cycle <= num_cycles; cycle++) {
-		for (sample = 0; sample < F_WAVEFORM_SIZE; sample++) {
-
-			/* oversample the filter */
-			for (j = 0; j < oversample; j++) {
-
-				/* highpass */
-				hp = osc_table[wave_num][sample] - lp - (bp * q);
-
-				/* bandpass */
-				bp += (f * hp);
-
-				/* lowpass */
-				lp += (f * bp);
-			}
-
-			/* ignore filter output on all but last cycle */
-			if (cycle == num_cycles) {
-				/* take the lowpass tap */
-				osc_table[wave_num][sample] = lp;
-			}
-		}
-	}
-}
-#endif /* FILTER_WAVETABLE_12DB */
-
-
-/*****************************************************************************
  * filter_osc_table_24dB()
  *
  * Apply lowpass filter to wavetable for bandlimiting oscillators.

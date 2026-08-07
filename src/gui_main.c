@@ -229,19 +229,6 @@ gtkui_thread(void *UNUSED(arg))
 
 
 /*****************************************************************************
- * start_gtkui_thread()
- *****************************************************************************/
-void
-start_gtkui_thread(void)
-{
-	init_rt_mutex(&gtkui_ready_mutex, 1);
-	if (pthread_create(&gtkui_thread_p, NULL, &gtkui_thread, NULL) != 0) {
-		phasex_shutdown("Unable to start gtkui thread.\n");
-	}
-}
-
-
-/*****************************************************************************
  * create_file_filters()
  *****************************************************************************/
 void
@@ -437,9 +424,6 @@ gui_main_loop_iteration(gpointer data)
 	PATCH           *patch      = get_visible_patch();
 	int             interval    = (int)((long int) data % 1000000);
 	static int      counter     = 0;
-#ifdef WALKING_UPDATE
-	static int      walking     = 0;
-#endif
 	int             num_updated = 0;
 	int             param_num;
 

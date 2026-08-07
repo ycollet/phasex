@@ -90,9 +90,6 @@ waveshaper_lookup(const sample_t *table, sample_t t)
 
 
 void build_filter_tables(void);
-#ifdef FILTER_WAVETABLE_12DB
-void filter_osc_table_12dB(int wave_num, int num_cycles, double octaves);
-#endif
 void filter_osc_table_24dB(int wave_num, int num_cycles, double octaves, sample_t scale);
 void run_filter(VOICE *voice, PART *part, PATCH_STATE *state);
 void run_moog_filter(VOICE *voice, PART *part, PATCH_STATE *state);

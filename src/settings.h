@@ -217,7 +217,6 @@ void set_midi_channel(GtkWidget *widget, gpointer data, GtkWidget *UNUSED(widget
 
 /* Interface settings */
 void set_fullscreen_mode(GtkWidget *widget, gpointer UNUSED(data1), gpointer data2);
-void set_maximize_mode(GtkWidget *UNUSED(widget), gpointer data);
 #ifdef SHOW_BACKING_STORE_SETTING
 void set_backing_store(GtkWidget *UNUSED(widget), gpointer data);
 #endif

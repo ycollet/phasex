@@ -52,7 +52,6 @@ void set_midi_index(unsigned int val);
 void set_engine_index(unsigned int val);
 unsigned int get_engine_index(void);
 
-unsigned int test_audio_index(unsigned int val);
 unsigned int get_audio_index(void);
 void inc_audio_index(unsigned int nframes);
 void set_audio_index(unsigned int val);

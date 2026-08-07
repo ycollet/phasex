@@ -103,19 +103,6 @@ get_visible_part(void)
 
 
 /*****************************************************************************
- * get_patch_state()
- *****************************************************************************/
-PATCH_STATE *
-get_patch_state(unsigned int sess_num, unsigned int part_num, unsigned int prog_num)
-{
-	if (prog_num == 0) {
-		return & (session_bank[sess_num].state[part_num]);
-	}
-	return & (state_bank[part_num][prog_num]);
-}
-
-
-/*****************************************************************************
  * get_active_patch()
  *****************************************************************************/
 PATCH *

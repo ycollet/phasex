@@ -155,19 +155,6 @@ set_engine_index(unsigned int val)
  *****************************************************************************/
 
 /*****************************************************************************
- * test_audio_index()
- *
- * Atomically reads audio_index and tests against supplied
- * value for write_index.  (currently not used).
- *****************************************************************************/
-unsigned int
-test_audio_index(unsigned int val)
-{
-	volatile gint   *addr = &audio_index;
-	return ((((unsigned int) g_atomic_int_get(addr) + buffer_latency) & buffer_size_mask) == val);
-}
-
-/*****************************************************************************
  * get_audio_index()
  *
  * Atomically reads audio_index.

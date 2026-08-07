@@ -66,27 +66,6 @@ get_patch_from_bank(unsigned int part_num, unsigned int prog_num)
 
 
 /*****************************************************************************
- * set_patch_from_bank()
- *
- * Sets the active patch pointer for the given part/prog num.
- *****************************************************************************/
-PATCH *
-set_patch_from_bank(unsigned int part_num, unsigned int prog_num)
-{
-	if (prog_num == 0) {
-		active_patch[part_num] = & (session_bank[visible_sess_num].patch[part_num]);
-		active_state[part_num] = & (session_bank[visible_sess_num].state[part_num]);
-	}
-	else {
-		active_patch[part_num] = & (patch_bank[part_num][prog_num]);
-		active_state[part_num] = & (state_bank[part_num][prog_num]);
-	}
-
-	return active_patch[part_num];
-}
-
-
-/*****************************************************************************
  * init_patch_bank()
  *****************************************************************************/
 void
@@ -342,25 +321,6 @@ save_patch_bank(char *filename)
 
 	/* done saving */
 	fclose(bank_f);
-}
-
-
-/*****************************************************************************
- * find_patch()
- *****************************************************************************/
-unsigned int
-find_patch(char *name, unsigned int part_num)
-{
-	PATCH           *patch;
-	unsigned int    prog;
-
-	for (prog = 0; prog < PATCH_BANK_SIZE; prog++) {
-		patch = get_patch_from_bank(part_num, prog);
-		if (strcmp(name, patch->name) == 0) {
-			break;
-		}
-	}
-	return prog;
 }
 
 

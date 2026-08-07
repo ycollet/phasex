@@ -98,8 +98,6 @@ extern "C" {
 
 	GtkWidget *gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim);
 	GType gtk_knob_get_type(void);
-	GtkAdjustment *gtk_knob_get_adjustment(GtkKnob *knob);
-	void gtk_knob_set_update_policy(GtkKnob *knob, GtkUpdateType  policy);
 	void gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment);
 
 	GtkKnobAnim *gtk_knob_animation_new_from_file_full(gchar *filename,

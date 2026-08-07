@@ -25,12 +25,7 @@
 
 
 sample_t get_rate_val(int ctlr);
-int get_rate_ctlr(char *token, char *UNUSED(filename), int UNUSED(line));
-int get_wave(char *token, char *filename, int line);
-int get_polarity(char *token, char *filename, int line);
-int get_ctlr(char *token, char *UNUSED(filename), int UNUSED(line));
 int get_boolean(char *token, char *UNUSED(filename), int UNUSED(line));
-int get_freq_base(char *token, char *UNUSED(filename), int UNUSED(line));
 
 
 #endif /* _PHASEX_PARAM_PARSE_H_ */

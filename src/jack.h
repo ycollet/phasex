@@ -65,7 +65,6 @@ int  jack_start(void);
 int  jack_stop(void);
 void jack_restart(void);
 void jack_watchdog_cycle(void);
-void *jack_audio_thread(void *UNUSED(arg));
 
 
 #endif /* _PHASEX_JACK_H_ */
