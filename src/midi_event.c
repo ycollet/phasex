@@ -43,7 +43,10 @@
 #include "driver.h"
 
 
-MIDI_EVENT              realtime_events[MAX_PARTS];
+/* Sized MAX_PARTS + 1: valid part_num values are 0..MAX_PARTS-1, plus the
+   ALL_PARTS sentinel (== MAX_PARTS) used to broadcast realtime messages to
+   every part, which needs its own scratch slot here. */
+MIDI_EVENT              realtime_events[MAX_PARTS + 1];
 
 volatile gint           bulk_event_index = 0;
 
@@ -59,9 +62,9 @@ init_midi_event_queue(unsigned int part_num) {
 
     memset(& (part->event_queue[0]), 0, sizeof(MIDI_EVENT) * MIDI_EVENT_POOL_SIZE);
     memset(& (part->bulk_queue[0]),  0, sizeof(MIDI_EVENT) * MIDI_EVENT_POOL_SIZE);
-    memset(& (realtime_events[0]),   0, sizeof(MIDI_EVENT) * MAX_PARTS);
+    memset(& (realtime_events[0]),   0, sizeof(MIDI_EVENT) * (MAX_PARTS + 1));
 
-    for (e = 0; e < MAX_PARTS; e++) {
+    for (e = 0; e < (MAX_PARTS + 1); e++) {
         event          = & (realtime_events[e]);
         event->type    = MIDI_EVENT_NO_EVENT;
         event->channel = 0x7F;
