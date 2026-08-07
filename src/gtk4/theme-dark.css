@@ -1,0 +1,55 @@
+/*
+ * GTK4 CSS port of themes/Phasex-Dark (a GTK2 .gtkrc file -- GTK4 has no
+ * .gtkrc mechanism at all, CSS is the only styling path).  Colors below are
+ * taken from the actually-*resolved* GTK2 styles captured by GUI_DEBUG
+ * (gtk2_debug_dump.txt) rather than re-derived from the gtkrc palette, so
+ * this should match what really rendered, not just what the theme intended.
+ */
+
+window {
+    background-color: #110011;
+    color: #c0c0c0;
+}
+
+.patch-group {
+    background-color: #000018;
+}
+
+.patch-group-content {
+    background-color: #110011;
+}
+
+.group-name {
+    color: #b0b0b0;
+}
+
+.patch-param {
+    color: #a0a0a0;
+}
+
+.phasex-button {
+    background-color: #000010;
+    color: #a0a0a0;
+    border: none;
+    border-radius: 0;
+}
+
+.phasex-button label {
+    color: #f89811;
+}
+
+.numeric-entry,
+.numeric-entry text {
+    background-color: #110011;
+    color: #f8a811;
+}
+
+.detent-label {
+    background-color: #000018;
+    color: #7799cc;
+}
+
+.indicator-label {
+    background-color: #000018;
+    color: #e80000;
+}

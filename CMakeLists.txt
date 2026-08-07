@@ -48,6 +48,7 @@ option(PHASEX_WITH_LIBRT "Link against librt if needed for clock_gettime/clock_n
 option(PHASEX_WITH_NSM "Build with New/Non Session Manager (NSM) support" ON)
 option(PHASEX_NATIVE_ARCH "Build with -march=native -mtune=native" OFF)
 option(PHASEX_GUI_DEBUG "Dump every GUI widget's position, size, and colors to the console at startup (for comparing GTK2 vs. a future GTK4 port)" OFF)
+option(PHASEX_GTK4 "Also build the experimental GTK4 preview (phasex-gtk4-preview), alongside the normal GTK2 phasex build" OFF)
 
 set(PHASEX_NUM_PARTS "1" CACHE STRING "Number of active synth parts to build with (1-12)")
 set(PHASEX_CPU_POWER "2" CACHE STRING "Optimize sound quality for CPU power: 1 (low) - 4 (over-powered)")
@@ -76,6 +77,12 @@ pkg_check_modules(SAMPLERATE REQUIRED IMPORTED_TARGET samplerate>=0.1.2)
 string(FIND "${GTK_LIBRARIES}" "gmodule" _gmodule_in_gtk)
 if(_gmodule_in_gtk EQUAL -1)
   pkg_check_modules(GMODULE REQUIRED IMPORTED_TARGET gmodule-2.0>=2.12)
+endif()
+
+set(HAVE_GTK4 OFF)
+if(PHASEX_GTK4)
+  pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
+  set(HAVE_GTK4 ON)
 endif()
 
 find_library(M_LIBRARY m)
@@ -194,6 +201,10 @@ if(NOT PHASEX_ARCH_BITS EQUAL 64)
 endif()
 
 add_subdirectory(src)
+
+if(HAVE_GTK4)
+  add_subdirectory(src/gtk4)
+endif()
 
 # ----------------------------------------------------------------------------
 # Data files
