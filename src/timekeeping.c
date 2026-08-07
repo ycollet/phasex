@@ -39,22 +39,8 @@
 #include "driver.h"
 
 
-#if (ARCH_BITS == 32)
-
-volatile ATOMIC_TIMESTAMP   midi_clock_time[8];
-volatile ATOMIC_TIMESTAMP   active_sensing_timeout[8];
-volatile gint               midi_clock_time_index;
-volatile gint               active_sensing_timeout_index;
-
-#endif /* (ARCH_BITS == 32) */
-
-
-#if (ARCH_BITS == 64)
-
 volatile ATOMIC_TIMESTAMP   midi_timeref;
 volatile ATOMIC_TIMESTAMP   active_sensing_timeout;
-
-#endif /* (ARCH_BITS == 64) */
 
 
 clockid_t                   midi_clockid          = -1;
@@ -115,9 +101,7 @@ start_midi_clock(void)
 #else
 	struct timeval      now;
 #endif
-#if (ARCH_BITS == 64)
 	ATOMIC_TIMESTAMP    new_timeref;
-#endif
 
 	g_atomic_int_set(&need_increment, 0);
 
@@ -157,47 +141,25 @@ start_midi_clock(void)
 
 	/* now set the reference timestamp itself. */
 	if (clock_gettime(midi_clockid, &now) == 0) {
-# if (ARCH_BITS == 32)
-		midi_clock_time[0].timestamp.sec  = now.tv_sec;
-		midi_clock_time[0].timestamp.nsec = now.tv_nsec;
-		g_atomic_int_set(&midi_clock_time_index, 0);
-# endif
-# if (ARCH_BITS == 64)
 		new_timeref.timestamp.sec  = (int) now.tv_sec;
 		new_timeref.timestamp.nsec = (int) now.tv_nsec;
 		g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
-# endif
 	}
 
 #else /* !HAVE_CLOCK_GETTIME */
 
 	if (gettimeofday(&now, NULL) == 0) {
-# if (ARCH_BITS == 32)
-		midi_clock_time[0].timestamp.sec  = now.tv_sec;
-		midi_clock_time[0].timestamp.nsec = now.tv_usec * 1000;
-		g_atomic_int_set(&midi_clock_time_index, 0);
-# endif
-# if (ARCH_BITS == 64)
 		new_timeref.timestamp.sec  = now.tv_sec;
-		new_timeref.timestamp.nsec = now.tv_nsec * 1000;
+		new_timeref.timestamp.nsec = now.tv_usec * 1000;
 		g_atomic_pointer_set(& (midi_timeref.gptr), new_timeref.gptr);
-# endif
 	}
 
 #endif /* !HAVE_CLOCK_GETTIME */
 
 	/* initialize the active sensing timeout to zero (active sensing off). */
-#if (ARCH_BITS == 32)
-	active_sensing_timeout[0].timestamp.sec  = 0;
-	active_sensing_timeout[0].timestamp.nsec = 0;
-	g_atomic_int_set(&active_sensing_timeout_index, 0);
-# endif
-# if (ARCH_BITS == 64)
 	new_timeref.timestamp.sec  = 0;
 	new_timeref.timestamp.nsec = 0;
 	g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeref.gptr);
-# endif
-
 }
 
 
@@ -216,9 +178,6 @@ get_time_delta(struct timespec *now)
 #ifndef HAVE_CLOCK_GETTIME
 	struct timeval      walltime;
 #endif
-#if (ARCH_BITS == 32)
-	int                 c_index;
-#endif
 
 	if (
 #ifdef HAVE_CLOCK_GETTIME
@@ -231,14 +190,7 @@ get_time_delta(struct timespec *now)
 		now->tv_sec  = walltime.tv_sec;
 		now->tv_nsec = walltime.tv_usec * 1000;
 #endif
-#if (ARCH_BITS == 32)
-		c_index = g_atomic_int_get(&midi_clock_time_index);
-		last_timeref.timestamp.sec  = midi_clock_time[c_index].timestamp.sec;
-		last_timeref.timestamp.nsec = midi_clock_time[c_index].timestamp.nsec;
-#endif
-#if (ARCH_BITS == 64)
 		last_timeref.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
-#endif
 		return (timecalc_t)(((now->tv_sec -
 		                      last_timeref.timestamp.sec) * 1000000000) +
 		                    (now->tv_nsec - last_timeref.timestamp.nsec));
@@ -310,9 +262,6 @@ set_midi_cycle_time(void)
 	timecalc_t              avg_period_nsec     = nsec_per_period;
 	static int              cycle_frame;
 	static int              last_cycle_frame;
-#if (ARCH_BITS == 32)
-	int                     c_index;
-#endif
 
 	last.sec  = (int) audio_start_time.tv_sec;
 	last.nsec = (int) audio_start_time.tv_nsec;
@@ -329,18 +278,10 @@ set_midi_cycle_time(void)
 		             DEBUG_COLOR_YELLOW "!!! Clock Start !!! " DEBUG_COLOR_DEFAULT);
 		/* set initial timeref to match target audio wakeup phase. */
 		delta_nsec = nsec_per_frame * (timecalc_t)(audio_phase_lock);
-#if (ARCH_BITS == 32)
-		midi_clock_time[0].timestamp.sec   = (int) audio_start_time.tv_sec;
-		midi_clock_time[0].timestamp.nsec  = (int) audio_start_time.tv_nsec;
-		midi_clock_time[0].timestamp.nsec -= (int) delta_nsec;
-		g_atomic_int_set(&midi_clock_time_index, 0);
-#endif
-#if (ARCH_BITS == 64)
 		next_timeref.timestamp.sec   = (int) audio_start_time.tv_sec;
 		next_timeref.timestamp.nsec  = (int) audio_start_time.tv_nsec;
 		next_timeref.timestamp.nsec -= (int)(delta_nsec);
 		g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
-#endif
 	}
 
 	/* handle the normal case. */
@@ -361,17 +302,8 @@ set_midi_cycle_time(void)
 		nsec_per_period = avg_period_nsec;
 		nsec_per_frame  = (nsec_per_period / f_buffer_period_size);
 	}
-#if (ARCH_BITS == 32)
-	c_index = g_atomic_int_get(&midi_clock_time_index);
-	timeref.timestamp.sec   = midi_clock_time[c_index].timestamp.sec;
-	timeref.timestamp.nsec  = midi_clock_time[c_index].timestamp.nsec;
-	next_timeref.timestamp.sec  = timeref.timestamp.sec;
-	next_timeref.timestamp.nsec = timeref.timestamp.nsec;
-#endif
-#if (ARCH_BITS == 64)
 	timeref.gptr      = g_atomic_pointer_get(& (midi_timeref.gptr));
 	next_timeref.gptr = timeref.gptr;
-#endif
 	last_cycle_frame = cycle_frame;
 	cycle_frame = (int)(delta_nsec / nsec_per_frame);
 	/* Latch the clock when audio wakes up before the calculated
@@ -440,17 +372,8 @@ set_midi_cycle_time(void)
 		next_timeref.timestamp.nsec += 1000000000;
 		next_timeref.timestamp.sec  = (next_timeref.timestamp.sec - 1);
 	}
-#if (ARCH_BITS == 32)
-	c_index = (c_index + 1) & 0x7;
-	midi_clock_time[c_index].timestamp.sec  = next_timeref.timestamp.sec;
-	midi_clock_time[c_index].timestamp.nsec = next_timeref.timestamp.nsec;
-	g_atomic_int_add(&need_increment, 1);
-	g_atomic_int_set(&midi_clock_time_index, c_index);
-#endif
-#if (ARCH_BITS == 64)
 	g_atomic_int_add(&need_increment, 1);
 	g_atomic_pointer_set(& (midi_timeref.gptr), next_timeref.gptr);
-#endif
 }
 
 
@@ -519,10 +442,6 @@ set_active_sensing_timeout(void)
 	struct timeval      walltime;
 #endif
 	struct timespec     now;
-#if (ARCH_BITS == 32)
-	int                 t_index     = g_atomic_int_get(&active_sensing_timeout_index);
-	int                 next_index  = (t_index + 1) & 0x7;
-#endif
 
 	if (
 #ifdef HAVE_CLOCK_GETTIME
@@ -542,14 +461,7 @@ set_active_sensing_timeout(void)
 			new_timeout.timestamp.sec  += 1;
 			new_timeout.timestamp.nsec -= 1000000000;
 		}
-#if (ARCH_BITS == 32)
-		active_sensing_timeout[next_index].timestamp.sec  = new_timeout.timestamp.sec;
-		active_sensing_timeout[next_index].timestamp.nsec = new_timeout.timestamp.nsec;
-		g_atomic_int_set(&active_sensing_timeout_index, next_index);
-#endif
-#if (ARCH_BITS == 64)
 		g_atomic_pointer_set(& (active_sensing_timeout.gptr), new_timeout.gptr);
-#endif
 		PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
 		             DEBUG_COLOR_MAGENTA "---AAAAA--- " DEBUG_COLOR_DEFAULT);
 	}
@@ -564,38 +476,16 @@ check_active_sensing_timeout(void)
 {
 	ATOMIC_TIMESTAMP    timeout;
 	ATOMIC_TIMESTAMP    midi_clock;
-#if (ARCH_BITS == 32)
-	int                 t_index = g_atomic_int_get(&active_sensing_timeout_index);
-	int                 next_index = (t_index + 1) & 0x7;
 
-	timeout.timestamp.sec  = active_sensing_timeout[t_index].timestamp.sec;
-	timeout.timestamp.nsec = active_sensing_timeout[t_index].timestamp.nsec;
-#endif
-#if (ARCH_BITS == 64)
 	timeout.gptr = g_atomic_pointer_get(& (active_sensing_timeout.gptr));
-#endif
 	if ((timeout.timestamp.sec != 0) && (timeout.timestamp.nsec != 0)) {
-#if (ARCH_BITS == 32)
-		t_index = g_atomic_int_get(&midi_clock_time_index);
-		midi_clock.timestamp.sec  = midi_clock_time[t_index].timestamp.sec;
-		midi_clock.timestamp.nsec = midi_clock_time[t_index].timestamp.nsec;
-#endif
-#if (ARCH_BITS == 64)
 		midi_clock.gptr = g_atomic_pointer_get(& (midi_timeref.gptr));
-#endif
 		if ((timeout.timestamp.sec < midi_clock.timestamp.sec) ||
 		    ((timeout.timestamp.sec == midi_clock.timestamp.sec) &&
 		     (timeout.timestamp.nsec < midi_clock.timestamp.nsec))) {
-#if (ARCH_BITS == 32)
-			active_sensing_timeout[next_index].timestamp.sec  = 0;
-			active_sensing_timeout[next_index].timestamp.nsec = 0;
-			g_atomic_int_set(&active_sensing_timeout_index, next_index);
-#endif
-#if (ARCH_BITS == 64)
 			timeout.timestamp.sec  = 0;
 			timeout.timestamp.nsec = 0;
 			g_atomic_pointer_set(& (active_sensing_timeout.gptr), timeout.gptr);
-#endif
 			PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
 			             DEBUG_COLOR_MAGENTA "---ZZZZZ--- " DEBUG_COLOR_DEFAULT);
 			return 1;

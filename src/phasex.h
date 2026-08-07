@@ -50,19 +50,10 @@
 
 /* Type to use for (almost) all floating point math. */
 #if (PHASEX_CPU_POWER == 4)
-# if (ARCH_BITS == 64)
-#  define MATH_64_BIT
+# define MATH_64_BIT
 typedef double sample_t;
-# else
-#  warn ***** Only 64-bit builds are supported with PHASEX_CPU_POWER == 4
-#  warn ***** Reverting to PHASEX_CPU_POWER == 3
-#  undef PHASEX_CPU_POWER
-#  define PHASEX_CPU_POWER 3
-#  define MATH_32_BIT
-typedef float sample_t;
-# endif
 #else
-#  define MATH_32_BIT
+# define MATH_32_BIT
 typedef float sample_t;
 #endif
 

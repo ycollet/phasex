@@ -184,6 +184,13 @@ add_compile_options(
   "$<$<CONFIG:Debug>:-Wextra;-Wcast-align;-Wconversion;-Werror=format-security;-ffast-math;-fsingle-precision-constant>")
 
 math(EXPR PHASEX_ARCH_BITS "${CMAKE_SIZEOF_VOID_P} * 8")
+if(NOT PHASEX_ARCH_BITS EQUAL 64)
+  message(FATAL_ERROR
+    "PHASEX requires a 64-bit target (got ${PHASEX_ARCH_BITS}-bit). "
+    "The atomic MIDI-timestamp code in timekeeping.c relies on a "
+    "pointer-sized (8-byte) atomic swap and no longer has a 32-bit "
+    "fallback path.")
+endif()
 
 add_subdirectory(src)
 

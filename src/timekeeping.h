@@ -30,34 +30,10 @@
 #define PHASEX_CLOCK_INIT           1111111111
 
 
-#if (ARCH_BITS == 32)
-
-typedef float timecalc_t;
-
-
-struct phasex_timestamp {
-	int                         sec;
-	int                         nsec;
-} __attribute__((packed));
-typedef struct phasex_timestamp PHASEX_TIMESTAMP;
-
-
-typedef union atomic_timestamp {
-	PHASEX_TIMESTAMP            timestamp;
-} ATOMIC_TIMESTAMP;
-
-
-extern volatile ATOMIC_TIMESTAMP    midi_clock_time[8];
-extern volatile ATOMIC_TIMESTAMP    active_sensing_timeout[8];
-extern volatile gint                midi_clock_time_index;
-extern volatile gint                active_sensing_timeout_index;
-
-
-#endif /* (ARCH_BITS == 32) */
-
-
-#if (ARCH_BITS == 64)
-
+/* PHASEX now requires a 64-bit architecture (see CMakeLists.txt), so a
+   PHASEX_TIMESTAMP (two ints = 8 bytes) is exactly gpointer-sized and can
+   be swapped atomically as a whole via g_atomic_pointer_get()/_set(),
+   using the transparent union below. */
 
 typedef double timecalc_t;
 
@@ -77,9 +53,6 @@ typedef union atomic_timestamp {
 
 extern volatile ATOMIC_TIMESTAMP    midi_ref_marker;
 extern volatile ATOMIC_TIMESTAMP    active_sensing_timeout;
-
-
-#endif /* (ARCH_BITS == 64) */
 
 extern clockid_t        midi_clockid;
 
