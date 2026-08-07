@@ -26,6 +26,7 @@
  *****************************************************************************/
 #include <gtk/gtk.h>
 #include "navbar.h"
+#include "paramgroup.h"
 #include "gui_debug4.h"
 
 
@@ -51,12 +52,13 @@ activate(GtkApplication *app, gpointer UNUSED_data) {
 
     window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "phasex (GTK4 preview)");
-    gtk_window_set_default_size(GTK_WINDOW(window), 969, 100);
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_append(GTK_BOX(vbox), create_navbar());
+    gtk_box_append(GTK_BOX(vbox), create_lfo1_group());
     gtk_window_set_child(GTK_WINDOW(window), vbox);
 
+    gtk_window_set_default_size(GTK_WINDOW(window), 969, 500);
     gtk_window_present(GTK_WINDOW(window));
 
     gui_debug4_dump_window(window);

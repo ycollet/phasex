@@ -49,6 +49,28 @@ window {
     color: #7799cc;
 }
 
+.param-group-frame {
+    background-color: #000018;
+}
+
+.param-name {
+    color: #706070;
+}
+
+.numeric-label {
+    background-color: #000018;
+    color: #f8a811;
+}
+
+.param-button,
+.off-button {
+    color: #a0a0a0;
+}
+
+.button-label {
+    color: #a0a0a0;
+}
+
 .indicator-label {
     background-color: #000018;
     color: #e80000;

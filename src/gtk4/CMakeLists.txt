@@ -2,6 +2,7 @@ add_executable(phasex-gtk4-preview
   main.c
   gtkknob.c gtkknob.h
   navbar.c navbar.h
+  paramgroup.c paramgroup.h
   gui_debug4.c gui_debug4.h)
 
 target_link_libraries(phasex-gtk4-preview PRIVATE PkgConfig::GTK4)
