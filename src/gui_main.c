@@ -52,6 +52,7 @@
 #include "gui_midimap.h"
 #include "gui_bank.h"
 #include "gui_session.h"
+#include "gui_debug.h"
 #include "gtkknob.h"
 #include "bank.h"
 #include "session.h"
@@ -838,6 +839,8 @@ create_main_window(void) {
 
     /* window doesn't appear until now */
     gtk_widget_show_all(main_window);
+
+    gui_debug_dump_window(main_window);
 
     if (debug_class & (DEBUG_CLASS_INIT | DEBUG_CLASS_GUI)) {
         gint width;

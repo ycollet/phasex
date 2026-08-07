@@ -47,6 +47,7 @@ message(STATUS "PHASEX version: ${PACKAGE_VERSION}")
 option(PHASEX_WITH_LIBRT "Link against librt if needed for clock_gettime/clock_nanosleep" ON)
 option(PHASEX_WITH_NSM "Build with New/Non Session Manager (NSM) support" ON)
 option(PHASEX_NATIVE_ARCH "Build with -march=native -mtune=native" OFF)
+option(PHASEX_GUI_DEBUG "Dump every GUI widget's position, size, and colors to the console at startup (for comparing GTK2 vs. a future GTK4 port)" OFF)
 
 set(PHASEX_NUM_PARTS "1" CACHE STRING "Number of active synth parts to build with (1-12)")
 set(PHASEX_CPU_POWER "2" CACHE STRING "Optimize sound quality for CPU power: 1 (low) - 4 (over-powered)")

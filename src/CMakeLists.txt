@@ -11,6 +11,7 @@ set(phasex_SOURCES
   gtkknob.c gtkknob.h
   gui_alsa.c gui_alsa.h
   gui_bank.c gui_bank.h
+  gui_debug.c gui_debug.h
   gui_jack.c gui_jack.h
   gui_layout.c gui_layout.h
   gui_main.c gui_main.h
@@ -52,6 +53,10 @@ target_compile_definitions(phasex PRIVATE
   _REENTRANT
   PHASEX_CPU_POWER=${PHASEX_CPU_POWER}
   NUM_PARTS=${PHASEX_NUM_PARTS})
+
+if(PHASEX_GUI_DEBUG)
+  target_compile_definitions(phasex PRIVATE GUI_DEBUG)
+endif()
 
 target_link_libraries(phasex PRIVATE
   PkgConfig::GLIB
