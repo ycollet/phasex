@@ -604,3 +604,20 @@ check_active_sensing_timeout(void)
 	}
 	return 0;
 }
+
+
+/*****************************************************************************
+ * refresh_active_sensing_timeout()
+ *
+ * Per the MIDI spec, any message (not just an explicit active sensing
+ * byte) received while active sensing is armed extends the timeout.
+ * Callers should invoke this once per incoming MIDI message, not once per
+ * part the message is queued to.
+ *****************************************************************************/
+void
+refresh_active_sensing_timeout(void)
+{
+	if (check_active_sensing_timeout() != 0) {
+		set_active_sensing_timeout();
+	}
+}

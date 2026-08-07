@@ -158,9 +158,9 @@ queue_midi_event(unsigned int part_num,
 		             event->state, event->type, event->byte2, event->byte3);
 	}
 
-	if (check_active_sensing_timeout() != 0) {
-		set_active_sensing_timeout();
-	}
+	/* Active sensing refresh is done once per incoming message by the
+	   caller (before fanning out to however many parts want this event),
+	   not here -- this function can be called once per part per message. */
 }
 
 

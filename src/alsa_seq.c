@@ -779,6 +779,10 @@ alsa_seq_thread(void *UNUSED(arg))
 				event->type  = MIDI_EVENT_NO_EVENT;
 				event->state = EVENT_STATE_ALLOCATED;
 
+				/* any message, not just active sensing itself, extends the
+				   active sensing timeout -- once per incoming message. */
+				refresh_active_sensing_timeout();
+
 				/* process event for each part that wants it */
 				for (part_num = 0; part_num < MAX_PARTS; part_num++) {
 					part = get_part(part_num);

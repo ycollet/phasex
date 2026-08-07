@@ -237,8 +237,8 @@ typedef struct part {
 	long long   _padding8;
 	long long   _padding9;
 	long long   _padding10;
-	volatile     sample_t   output_buffer1[PHASEX_MAX_BUFSIZE];
-	volatile     sample_t   output_buffer2[PHASEX_MAX_BUFSIZE];
+	sample_t     output_buffer1[PHASEX_MAX_BUFSIZE];
+	sample_t     output_buffer2[PHASEX_MAX_BUFSIZE];
 } PART;
 
 

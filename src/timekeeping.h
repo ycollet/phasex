@@ -101,6 +101,7 @@ void set_midi_cycle_time(void);
 unsigned int get_midi_cycle_frame(timecalc_t delta_nsec);
 void set_active_sensing_timeout(void);
 int check_active_sensing_timeout(void);
+void refresh_active_sensing_timeout(void);
 
 
 #endif /* _TIMEKEEPING_H_ */

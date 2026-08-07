@@ -1367,7 +1367,7 @@ run_osc(VOICE *voice, PART *part, PATCH_STATE *state, unsigned int osc)
 			tmp_1 = (voice->osc_out1[j] + voice->osc_out2[j]) * 0.5;
 			/* saturation / soft clipping */
 			tmp_2 = (sample_t) MATH_ABS(tmp_1);
-			tmp_1 *= (tmp_2 + 1.1) / ((tmp_2 * tmp_2) + (1.1 - 1.0) * tmp_2 + 1.0);
+			tmp_1 *= waveshaper_lookup(waveshaper_table_11, tmp_2);
 			break;
 		case MOD_TYPE_VELOCITY:
 			tmp_1 = voice->velocity_coef_linear;

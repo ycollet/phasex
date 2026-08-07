@@ -42,6 +42,21 @@ sample_t    filter_dist_6[32];
 
 int         filter_limit = 1;
 
+/* filter_q is clamped to [0.0, 0.9921875] before use, so sin(filter_q *
+   M_PI_2) only ever needs values from this small, smooth table instead of
+   a per-voice-per-sample sinf() call. */
+#define FILTER_Q_SIN_TABLE_SIZE  1024
+static sample_t     filter_q_sin_table[FILTER_Q_SIN_TABLE_SIZE];
+
+/* the rational waveshaper (|x|+a)/(x^2+(a-1)|x|+1) used for saturation/soft
+   clipping, tabled over |x| for the two fixed constants used at every call
+   site (a=0.9 here in filter.c, a=1.1 for engine.c's oscillator modulation
+   waveshaper -- shared here since build_filter_tables() already builds
+   every other precomputed curve this engine uses).  Size/scale are defined
+   in filter.h since waveshaper_table_11 is also used from engine.c. */
+sample_t    waveshaper_table_09[WAVESHAPER_TABLE_SIZE];
+sample_t    waveshaper_table_11[WAVESHAPER_TABLE_SIZE];
+
 
 /*****************************************************************************
  * build_filter_tables()
@@ -72,6 +87,24 @@ build_filter_tables(void)
 	}
 
 	/* TODO: Add Moog filter's resonance curve to filter_res[][] here. */
+
+	/* filter_q's sin(filter_q * M_PI_2) curve, over its clamped domain of
+	   [0.0, 0.9921875]. */
+	for (j = 0; j < FILTER_Q_SIN_TABLE_SIZE; j++) {
+		filter_q_sin_table[j] =
+			(sample_t) sin(((double) j / (FILTER_Q_SIN_TABLE_SIZE - 1)) * M_PI_2);
+	}
+
+	/* rational waveshaper (|x|+a)/(x^2+(a-1)|x|+1), tabled over |x| for
+	   each fixed 'a' constant used at a waveshaper call site. */
+	for (j = 0; j < WAVESHAPER_TABLE_SIZE; j++) {
+		double  t = ((double) j / (WAVESHAPER_TABLE_SIZE - 1)) * WAVESHAPER_TABLE_MAX;
+
+		waveshaper_table_09[j] =
+			(sample_t) ((t + 0.9) / ((t * t) + (0.9 - 1.0) * t + 1.0));
+		waveshaper_table_11[j] =
+			(sample_t) ((t + 1.1) / ((t * t) + (1.1 - 1.0) * t + 1.0));
+	}
 
 	/* build the high res table for fine filter adjustmentss */
 	for (j = 0; j < 648; j++) {
@@ -277,16 +310,16 @@ run_experimental_filter(VOICE *voice, PART *part, PATCH_STATE *state)
 	}
 
 	filter_k = (2.0 * filter_f) - 1.0;
-	filter_r = (sample_t)(((1.0 + (sample_t) MATH_SIN(filter_q * M_PI_2)) *
+	filter_r = (sample_t)(((1.0 + filter_q_sin_table[(int) (filter_q * (FILTER_Q_SIN_TABLE_SIZE - 1))]) *
 	                       (1.0 - filter_f)) - 1.0) * 4.0;
 
 	switch (state->filter_type) {
 	case FILTER_TYPE_EXPERIMENTAL_DIST:
 		/* waveshaper saturation/distortion (fixed at a = 0.9) */
 		tmp = (sample_t) MATH_ABS(voice->out1);
-		voice->out1 *= (tmp + 0.9) / ((tmp * tmp) + (0.9 - 1.0) * tmp + 1.0);
+		voice->out1 *= waveshaper_lookup(waveshaper_table_09, tmp);
 		tmp = (sample_t) MATH_ABS(voice->out2);
-		voice->out2 *= (tmp + 0.9) / ((tmp * tmp) + (0.9 - 1.0) * tmp + 1.0);
+		voice->out2 *= waveshaper_lookup(waveshaper_table_09, tmp);
 
 		for (j = 0; j < FILTER_OVERSAMPLE; j++) {
 			filter_d = (filter_dist_5[j] - filter_f) * filter_dist_6[j];
@@ -435,9 +468,9 @@ run_moog_filter(VOICE *voice, PART *part, PATCH_STATE *state)
 
 	/* waveshaper saturation/distortion */
 	tmp = (sample_t) MATH_ABS(voice->out1);
-	voice->out1 *= (tmp + 0.9) / ((tmp * tmp) + (0.9 - 1.0) * tmp + 1.0);
+	voice->out1 *= waveshaper_lookup(waveshaper_table_09, tmp);
 	tmp = (sample_t) MATH_ABS(voice->out2);
-	voice->out2 *= (tmp + 0.9) / ((tmp * tmp) + (0.9 - 1.0) * tmp + 1.0);
+	voice->out2 *= waveshaper_lookup(waveshaper_table_09, tmp);
 
 	/* assignable lfo/velocity controls */
 	tmp = (state->filter_lfo == LFO_VELOCITY) ?
@@ -473,7 +506,7 @@ run_moog_filter(VOICE *voice, PART *part, PATCH_STATE *state)
 	}
 
 	filter_k = (2.0 * filter_f) - 1.0;
-	filter_r = (sample_t)(((1.0 + (sample_t) MATH_SIN(filter_q * M_PI_2)) *
+	filter_r = (sample_t)(((1.0 + filter_q_sin_table[(int) (filter_q * (FILTER_Q_SIN_TABLE_SIZE - 1))]) *
 	                       (1.0 - filter_f)) - 1.0) * 4.0;
 
 	switch (state->filter_type) {

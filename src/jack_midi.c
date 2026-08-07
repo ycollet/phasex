@@ -93,6 +93,9 @@ jack_process_midi(jack_nframes_t nframes)
 			else {
 				out_event->byte3 = 0x00;
 			}
+			/* any message, not just active sensing itself, extends the
+			   active sensing timeout -- once per incoming message. */
+			refresh_active_sensing_timeout();
 			/* queue event for all parts listening to the incoming channel. */
 			for (part_num = 0; part_num < MAX_PARTS; part_num++) {
 				part = get_part(part_num);

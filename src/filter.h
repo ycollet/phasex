@@ -64,6 +64,30 @@ extern sample_t     filter_dist_5[32];
 extern sample_t     filter_dist_6[32];
 extern int          filter_limit;
 
+/* waveshaper_table_11 is used by engine.c's oscillator modulation
+   waveshaper; keep the size/scale in sync with filter.c's table build. */
+#define WAVESHAPER_TABLE_SIZE    2048
+#define WAVESHAPER_TABLE_MAX     4.0
+extern sample_t     waveshaper_table_09[WAVESHAPER_TABLE_SIZE];
+extern sample_t     waveshaper_table_11[WAVESHAPER_TABLE_SIZE];
+
+
+/* Looks up the rational waveshaper curve for |x| = t (t is expected to
+   already be non-negative, e.g. the result of MATH_ABS()), clamped to the
+   table's domain. */
+static inline sample_t
+waveshaper_lookup(const sample_t *table, sample_t t)
+{
+	int index;
+
+	if (t > (sample_t) WAVESHAPER_TABLE_MAX) {
+		t = (sample_t) WAVESHAPER_TABLE_MAX;
+	}
+	index = (int) ((t / (sample_t) WAVESHAPER_TABLE_MAX) * (WAVESHAPER_TABLE_SIZE - 1));
+
+	return table[index];
+}
+
 
 void build_filter_tables(void);
 #ifdef FILTER_WAVETABLE_12DB

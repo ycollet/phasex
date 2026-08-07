@@ -50,6 +50,13 @@ int                     rawmidi_sleep_time       = 100;
 unsigned char           midi_realtime_type[32];
 int                     realtime_event_count     = 0;
 
+/* Give up and let the watchdog restart the MIDI driver after this many
+   consecutive read failures, rather than retrying forever (a device
+   removal/error condition otherwise causes an indefinite retry loop on
+   the realtime MIDI thread). */
+#define RAWMIDI_MAX_CONSECUTIVE_ERRORS  200
+static int              rawmidi_consecutive_errors  = 0;
+
 #ifdef ENABLE_RAWMIDI_ALSA_RAW
 ALSA_RAWMIDI_HW_INFO    *alsa_rawmidi_hw         = NULL;
 
@@ -559,6 +566,14 @@ rawmidi_read(RAWMIDI_INFO *rawmidi, unsigned char *buf, int len)
 				if ((buf_available = snd_rawmidi_read(rawmidi->handle, read_buf, 256)) < 1) {
 					PHASEX_ERROR("Unable to read from ALSA MIDI device '%s'!\n",
 					             rawmidi->device);
+					if (++rawmidi_consecutive_errors >= RAWMIDI_MAX_CONSECUTIVE_ERRORS) {
+						PHASEX_ERROR("Too many consecutive MIDI read errors on '%s'.  "
+						             "Restarting MIDI.\n", rawmidi->device);
+						midi_stopped = 1;
+					}
+				}
+				else {
+					rawmidi_consecutive_errors = 0;
 				}
 				buf_index = 0;
 				while ((buf_index < buf_available) && (output_index < len)) {
@@ -580,8 +595,14 @@ rawmidi_read(RAWMIDI_INFO *rawmidi, unsigned char *buf, int len)
 			{
 				if (snd_rawmidi_read(rawmidi->handle, & (buf[bytes_read]), 1) != 1) {
 					PHASEX_ERROR("Unable to read from ALSA MIDI device '%s'!\n", rawmidi->device);
+					if (++rawmidi_consecutive_errors >= RAWMIDI_MAX_CONSECUTIVE_ERRORS) {
+						PHASEX_ERROR("Too many consecutive MIDI read errors on '%s'.  "
+						             "Restarting MIDI.\n", rawmidi->device);
+						midi_stopped = 1;
+					}
 					break;
 				}
+				rawmidi_consecutive_errors = 0;
 #  ifdef RAWMIDI_DEBUG
 				PHASEX_DEBUG(DEBUG_CLASS_RAW_MIDI, "%02X ", buf[bytes_read]);
 #  endif /* RAWMIDI_DEBUG */
@@ -1013,6 +1034,9 @@ rawmidi_thread(void *UNUSED(arg))
 				PHASEX_DEBUG(DEBUG_CLASS_MIDI_TIMING,
 				             DEBUG_COLOR_CYAN "[%d] " DEBUG_COLOR_DEFAULT,
 				             (index / buffer_period_size));
+				/* any message, not just active sensing itself, extends the
+				   active sensing timeout -- once per incoming message. */
+				refresh_active_sensing_timeout();
 				/* queue for all parts that want it. */
 				for (part_num = 0; part_num < MAX_PARTS; part_num++) {
 					part = get_part(part_num);

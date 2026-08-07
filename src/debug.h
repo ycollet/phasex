@@ -111,7 +111,7 @@ extern DEBUG_CLASS      debug_class_list[16];
 			new_debug_index = (old_debug_index + 1) & DEBUG_BUFFER_MASK; \
 		} while (!g_atomic_int_compare_and_exchange (&(main_debug_queue.insert_index), \
 		                                             old_debug_index, new_debug_index)); \
-		snprintf (main_debug_queue.msgs[main_debug_queue.insert_index].msg, \
+		snprintf (main_debug_queue.msgs[old_debug_index].msg, \
 		          DEBUG_MESSAGE_SIZE, args); \
 		do { \
 			old_debug_index = g_atomic_int_get (&(main_debug_queue.write_index)); \
@@ -129,7 +129,7 @@ extern DEBUG_CLASS      debug_class_list[16];
 			new_debug_index = (old_debug_index + 1) & DEBUG_BUFFER_MASK; \
 		} while (!g_atomic_int_compare_and_exchange (&(main_debug_queue.insert_index), \
 		                                             old_debug_index, new_debug_index)); \
-		snprintf (main_debug_queue.msgs[main_debug_queue.insert_index].msg, \
+		snprintf (main_debug_queue.msgs[old_debug_index].msg, \
 		          DEBUG_MESSAGE_SIZE, args); \
 		do { \
 			old_debug_index = g_atomic_int_get (&(main_debug_queue.write_index)); \
@@ -149,7 +149,7 @@ extern DEBUG_CLASS      debug_class_list[16];
 			new_debug_index = (old_debug_index + 1) & DEBUG_BUFFER_MASK; \
 		} while (!g_atomic_int_compare_and_exchange (&(main_debug_queue.insert_index), \
 		                                             old_debug_index, new_debug_index)); \
-		snprintf (main_debug_queue.msgs[main_debug_queue.insert_index].msg, \
+		snprintf (main_debug_queue.msgs[old_debug_index].msg, \
 		          DEBUG_MESSAGE_SIZE, args); \
 		do { \
 			old_debug_index = g_atomic_int_get (&(main_debug_queue.write_index)); \
