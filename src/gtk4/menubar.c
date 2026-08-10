@@ -193,6 +193,13 @@ static const GActionEntry win_actions[] = {
     { "save-midimap-as", placeholder_action, NULL, NULL,   NULL },
     { "about",          on_about,         NULL, NULL,      NULL },
     { "help",           on_help,          NULL, NULL,      NULL },
+    /* Disabled below, right after the action group is built -- see
+       build_placeholder_menu(). A GMenuItem with a NULL action
+       ("win.alsa"/"win.jack" omitted entirely) doesn't reliably
+       render at all in GtkPopoverMenuBar; it needs a real action
+       reference to show up as a (greyed-out) row with its label. */
+    { "alsa-placeholder", placeholder_action, NULL, NULL,  NULL },
+    { "jack-placeholder", placeholder_action, NULL, NULL,  NULL },
 };
 
 
@@ -328,10 +335,10 @@ build_midi_menu(void) {
 
 
 static GMenuModel *
-build_placeholder_menu(const char *label) {
+build_placeholder_menu(const char *label, const char *detailed_action) {
     GMenu *menu = g_menu_new();
 
-    g_menu_append(menu, label, NULL);
+    g_menu_append(menu, label, detailed_action);
     return G_MENU_MODEL(menu);
 }
 
@@ -355,14 +362,23 @@ create_menubar(GtkWindow *window) {
     g_action_map_add_action_entries(G_ACTION_MAP(actions), win_actions,
                                     G_N_ELEMENTS(win_actions), window);
     gtk_widget_insert_action_group(GTK_WIDGET(window), "win", G_ACTION_GROUP(actions));
+
+    /* Disabled so they render as greyed-out rows rather than being
+       clickable no-ops -- see the win_actions[] comment above. */
+    g_simple_action_set_enabled(
+            G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(actions), "alsa-placeholder")), FALSE);
+    g_simple_action_set_enabled(
+            G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(actions), "jack-placeholder")), FALSE);
     g_object_unref(actions);
 
     g_menu_append_submenu(menubar, "File", build_file_menu());
     g_menu_append_submenu(menubar, "View", build_view_menu());
     g_menu_append_submenu(menubar, "Patch", build_patch_menu());
     g_menu_append_submenu(menubar, "MIDI", build_midi_menu());
-    g_menu_append_submenu(menubar, "ALSA", build_placeholder_menu("(device list not available in this preview)"));
-    g_menu_append_submenu(menubar, "JACK", build_placeholder_menu("(port list not available in this preview)"));
+    g_menu_append_submenu(menubar, "ALSA",
+            build_placeholder_menu("(device list not available in this preview)", "win.alsa-placeholder"));
+    g_menu_append_submenu(menubar, "JACK",
+            build_placeholder_menu("(port list not available in this preview)", "win.jack-placeholder"));
     g_menu_append_submenu(menubar, "Help", build_help_menu());
 
     bar = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(menubar));
