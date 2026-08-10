@@ -26,6 +26,7 @@ add_executable(phasex-gtk4-preview
   gtkknob.c gtkknob.h
   navbar.c navbar.h
   menubar.c menubar.h
+  device_enum.c device_enum.h
   paramgroup.c paramgroup.h
   param_groups_data.c
   gui_debug4.c gui_debug4.h
