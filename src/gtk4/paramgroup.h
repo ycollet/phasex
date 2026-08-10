@@ -5,13 +5,10 @@
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
  * GTK4 port of gui_layout.c's create_param_group() + gui_param.c's
- * create_param_input(), scoped to the "LFO-1" group (src/gui_layout.c's
- * param_group[] entry with param_list = { PARAM_LFO1_POLARITY,
- * PARAM_LFO1_FREQ_BASE, PARAM_LFO1_WAVE, PARAM_LFO1_RATE,
- * PARAM_LFO1_INIT_PHASE, PARAM_LFO1_TRANSPOSE, PARAM_LFO1_PITCHBEND,
- * PARAM_LFO1_VOICE_AM }) as a second, denser test of the ported knob
- * widget and the table-of-controls layout pattern used by every other
- * param group. See paramgroup.c for what's simplified in this pass.
+ * create_param_input(), generalized to build any of the real param
+ * groups (see param_groups_data.c) from real PARAM_INFO/PARAM state
+ * (param.c, already linked) rather than hardcoded specs. See
+ * paramgroup.c for what's simplified in this pass.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +29,9 @@
 
 #include <gtk/gtk.h>
 
-GtkWidget *create_lfo1_group(void);
+/* Builds the Nth real param group (0..NUM_PARAM_GROUPS-1, see
+   param_groups_data.c's init_param_groups()) as a framed grid of
+   knobs/buttons, one row per parameter. */
+GtkWidget *create_param_group_view(int group_index);
 
 #endif /* _PHASEX_GTK4_PARAMGROUP_H_ */

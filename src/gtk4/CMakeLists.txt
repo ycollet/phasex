@@ -27,6 +27,7 @@ add_executable(phasex-gtk4-preview
   navbar.c navbar.h
   menubar.c menubar.h
   paramgroup.c paramgroup.h
+  param_groups_data.c
   gui_debug4.c gui_debug4.h
   backend_init.c backend_init.h
   ${phasex_gtk4_backend_SOURCES})

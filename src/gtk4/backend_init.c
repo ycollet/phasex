@@ -54,6 +54,7 @@
 #include "settings.h"
 #include "timekeeping.h"
 #include "buffer.h"
+#include "gui_layout.h"
 #include "backend_init.h"
 
 
@@ -213,6 +214,8 @@ phasex_gtk4_backend_init(void) {
     }
 
     init_params();
+    init_param_groups();
+    init_param_pages();
     init_engine_internals();
     init_patch_param_data();
     init_patch_bank(NULL);

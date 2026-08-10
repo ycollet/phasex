@@ -5,13 +5,21 @@
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
  * Entry point for the experimental GTK4 preview (PHASEX_GTK4=ON).  Builds
- * just enough of a real window to compare against the GTK2 GUI_DEBUG
- * baseline (gtk2_debug_dump.txt): the "PatchGroup" navbar frame, styled via
- * theme-dark.css, plus one param group (LFO-1).  Calls
- * phasex_gtk4_backend_init() first to bring up the real session/bank/
- * patch backend (see backend_init.c) before building any widgets, so the
- * navbar can read and drive real state.  Not the full app yet -- see
- * src/gtk4/navbar.c for what's in scope for this pass.
+ * a real window with the menubar, the "PatchGroup" navbar frame, and
+ * every real param group (see param_groups_data.c), styled via
+ * theme-dark.css.  Calls phasex_gtk4_backend_init() first to bring up
+ * the real session/bank/patch backend (see backend_init.c) before
+ * building any widgets, so the navbar and param groups can read and
+ * drive real state.
+ *
+ * Param groups are packed into a GtkFlowBox inside a scrolled window
+ * rather than the real app's notebook/one-page/widescreen multi-column
+ * layouts (gui_layout.c's create_param_notebook()/_one_page()/
+ * _widescreen()) -- those depend on setting_window_layout, which isn't
+ * wired to anything real yet (see menubar.c's View menu). A flow box
+ * that wraps groups left-to-right, as many as fit per row, is a
+ * reasonable stand-in for "some multi-column layout" without picking
+ * one of the three prematurely.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +44,7 @@
 #include "session.h"
 #include "patch.h"
 #include "bank.h"
+#include "gui_layout.h"
 
 
 #ifndef PHASEX_GTK4_CSS_DIR
@@ -47,8 +56,11 @@ static void
 activate(GtkApplication *app, gpointer UNUSED_data) {
     GtkWidget           *window;
     GtkWidget           *vbox;
+    GtkWidget           *scroller;
+    GtkWidget           *flowbox;
     GtkCssProvider      *css;
     char                css_path[1024];
+    int                 i;
 
     (void) UNUSED_data;
 
@@ -61,13 +73,27 @@ activate(GtkApplication *app, gpointer UNUSED_data) {
     window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "phasex (GTK4 preview)");
 
+    flowbox = gtk_flow_box_new();
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flowbox), GTK_SELECTION_NONE);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flowbox), 6);
+    gtk_widget_set_valign(flowbox, GTK_ALIGN_START);
+    for (i = 0; i < NUM_PARAM_GROUPS; i++) {
+        if (param_group[i].param_list[0] > -1) {
+            gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_param_group_view(i), -1);
+        }
+    }
+
+    scroller = gtk_scrolled_window_new();
+    gtk_widget_set_vexpand(scroller, TRUE);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), flowbox);
+
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_append(GTK_BOX(vbox), create_menubar(GTK_WINDOW(window)));
     gtk_box_append(GTK_BOX(vbox), create_navbar());
-    gtk_box_append(GTK_BOX(vbox), create_lfo1_group());
+    gtk_box_append(GTK_BOX(vbox), scroller);
     gtk_window_set_child(GTK_WINDOW(window), vbox);
 
-    gtk_window_set_default_size(GTK_WINDOW(window), 969, 500);
+    gtk_window_set_default_size(GTK_WINDOW(window), 1400, 900);
     gtk_window_present(GTK_WINDOW(window));
 
     gui_debug4_dump_window(window);
