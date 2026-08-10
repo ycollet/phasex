@@ -53,6 +53,7 @@
 #include "session.h"
 #include "settings.h"
 #include "timekeeping.h"
+#include "buffer.h"
 #include "backend_init.h"
 
 
@@ -216,4 +217,11 @@ phasex_gtk4_backend_init(void) {
     init_patch_param_data();
     init_patch_bank(NULL);
     init_session_bank(NULL);
+
+    /* Needed for the Test Note button: queue_midi_event()'s cycle-frame
+       math (timekeeping.c) and the MIDI ring-buffer index (buffer.c)
+       both need a starting reference, normally set up by the audio
+       thread we're not running. */
+    init_buffer_indices(1);
+    start_midi_clock();
 }

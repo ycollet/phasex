@@ -8,16 +8,17 @@
  * PHASEX_NUM_PARTS=1 layout (the default build) -- matches the widgets
  * actually present in gtk2_debug_dump.txt, so the two can be diffed.
  *
- * The program spinner, patch name, and MIDI channel now read and drive
- * the real backend (see backend_init.c): initial values come from
- * get_visible_patch()/get_visible_part(), and changing the program
- * spinner calls the real set_active_patch()/init_patch_state() (the
- * core of gui_bank.c's select_program(), minus its modified-patch
- * warning dialog and BANK_MEM_* handling -- deferred to a later pass).
- * Load/save/test-note/notes-off buttons are still placeholders: their
- * real counterparts (on_patch_save_activate(), queue_test_note(), etc.)
- * either open GTK2 file dialogs directly or need the MIDI event queue
- * wired up, both out of scope for this pass.
+ * Every control here reads and drives the real backend (see
+ * backend_init.c): initial values come from get_visible_patch()/
+ * get_visible_part(), the program spinner calls the real
+ * set_active_patch()/init_patch_state() (the core of gui_bank.c's
+ * select_program(), minus its modified-patch warning dialog and
+ * BANK_MEM_* handling -- deferred to a later pass), Test Note/Notes
+ * Off call the same timekeeping.c/midi_event.c/midi_process.c
+ * functions gui_navbar.c's queue_test_note() and broadcast_notes_off()
+ * do, and Load/Save Patch use GTK4's async GtkFileDialog (there's no
+ * GTK2 equivalent to port -- gui_bank.c's dialogs are GTK2-native)
+ * around the real read_patch()/save_patch().
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +35,17 @@
  *
  *****************************************************************************/
 #include <stdio.h>
+#include <time.h>
 #include "navbar.h"
 #include "gtkknob.h"
 #include "bank.h"
 #include "patch.h"
 #include "engine.h"
+#include "mididefs.h"
+#include "midi_event.h"
+#include "midi_process.h"
+#include "timekeeping.h"
+#include "buffer.h"
 
 
 #ifndef PHASEX_GTK4_PIXMAP_DIR
@@ -75,11 +82,127 @@ make_phasex_button(const char *markup_text, GCallback callback) {
 }
 
 
+/* Same body as gui_navbar.c's queue_test_note(): entirely toolkit-
+   agnostic (timekeeping.c/buffer.c/midi_event.c), just missing the
+   unused GtkWidget parameter GTK2's signal signature required. */
 static void
-on_placeholder_clicked(GtkButton *button, gpointer UNUSED_data) {
+on_test_note_clicked(GtkButton *UNUSED_button, gpointer UNUSED_data) {
+    MIDI_EVENT      event;
+    timecalc_t      delta_nsec;
+    struct timespec now;
+    unsigned int    m_index;
+    unsigned int    tmp_index;
+    unsigned int    cycle_frame;
+    PART            *part = get_visible_part();
+
+    (void) UNUSED_button;
     (void) UNUSED_data;
-    g_printerr("[gtk4-preview] %s clicked (not wired to the backend yet)\n",
-               gtk_widget_get_name(GTK_WIDGET(button)));
+
+    event.state    = -1;
+    event.type     = MIDI_EVENT_NOTE_ON;
+    event.channel  = (unsigned char) part->midi_channel;
+    event.note     = 64;
+    event.velocity = 64;
+    event.next     = NULL;
+
+    tmp_index   = get_midi_index();
+    delta_nsec  = get_time_delta(&now);
+    cycle_frame = get_midi_cycle_frame(delta_nsec);
+
+    if (tmp_index != (m_index = get_midi_index())) {
+        cycle_frame = 0;
+    }
+
+    queue_midi_event(visible_part_num, &event, cycle_frame, m_index);
+
+    if (delta_nsec >= 0.0) {
+        inc_midi_index();
+    }
+}
+
+
+static void
+on_notes_off_clicked(GtkButton *UNUSED_button, gpointer UNUSED_data) {
+    (void) UNUSED_button;
+    (void) UNUSED_data;
+    broadcast_notes_off();
+}
+
+
+static void
+on_save_patch_finish(GObject *source, GAsyncResult *result, gpointer UNUSED_data) {
+    GtkFileDialog   *dialog = GTK_FILE_DIALOG(source);
+    GFile           *file;
+    GError          *error  = NULL;
+
+    (void) UNUSED_data;
+
+    file = gtk_file_dialog_save_finish(dialog, result, &error);
+    if (file == NULL) {
+        g_clear_error(&error);
+        return;
+    }
+
+    {
+        char    *path  = g_file_get_path(file);
+        PATCH   *patch = get_visible_patch();
+
+        save_patch(path, patch);
+        g_free(path);
+    }
+    g_object_unref(file);
+}
+
+
+static void
+on_save_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+    GtkFileDialog   *dialog = gtk_file_dialog_new();
+    GtkWindow       *parent = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
+
+    (void) UNUSED_data;
+
+    gtk_file_dialog_set_title(dialog, "Save Patch");
+    gtk_file_dialog_save(dialog, parent, NULL, on_save_patch_finish, NULL);
+}
+
+
+static void
+on_load_patch_finish(GObject *source, GAsyncResult *result, gpointer UNUSED_data) {
+    GtkFileDialog   *dialog = GTK_FILE_DIALOG(source);
+    GFile           *file;
+    GError          *error  = NULL;
+
+    (void) UNUSED_data;
+
+    file = gtk_file_dialog_open_finish(dialog, result, &error);
+    if (file == NULL) {
+        g_clear_error(&error);
+        return;
+    }
+
+    {
+        char    *path  = g_file_get_path(file);
+        PATCH   *patch = get_visible_patch();
+
+        if (read_patch(path, patch) == 0) {
+            gtk_editable_set_text(GTK_EDITABLE(patch_name_entry),
+                                  (patch->name != NULL) ? patch->name : "untitled");
+        }
+        g_free(path);
+    }
+    g_object_unref(file);
+}
+
+
+static void
+on_load_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+    GtkFileDialog   *dialog = gtk_file_dialog_new();
+    GtkWindow       *parent = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
+
+    (void) UNUSED_data;
+
+    gtk_file_dialog_set_title(dialog, "Load Patch");
+    gtk_file_dialog_open(dialog, parent, NULL, on_load_patch_finish, NULL);
 }
 
 
@@ -195,9 +318,9 @@ create_navbar(void) {
     box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     gtk_widget_set_name(box, "load-save-patch");
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Load\nPatch</small>",
-                   G_CALLBACK(on_placeholder_clicked)));
+                   G_CALLBACK(on_load_patch_clicked)));
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Save\nPatch</small>",
-                   G_CALLBACK(on_placeholder_clicked)));
+                   G_CALLBACK(on_save_patch_clicked)));
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** Patch-modified indicator *** */
@@ -212,9 +335,9 @@ create_navbar(void) {
     box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     gtk_widget_set_name(box, "test-panic");
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Test\nNote</small>",
-                   G_CALLBACK(on_placeholder_clicked)));
+                   G_CALLBACK(on_test_note_clicked)));
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Notes\nOff</small>",
-                   G_CALLBACK(on_placeholder_clicked)));
+                   G_CALLBACK(on_notes_off_clicked)));
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** MIDI channel selector (label + knob + value label) *** */
