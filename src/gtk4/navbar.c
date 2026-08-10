@@ -154,15 +154,19 @@ on_save_patch_finish(GObject *source, GAsyncResult *result, gpointer UNUSED_data
 }
 
 
-static void
-on_save_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+void
+navbar_trigger_save_patch(GtkWindow *parent) {
     GtkFileDialog   *dialog = gtk_file_dialog_new();
-    GtkWindow       *parent = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
-
-    (void) UNUSED_data;
 
     gtk_file_dialog_set_title(dialog, "Save Patch");
     gtk_file_dialog_save(dialog, parent, NULL, on_save_patch_finish, NULL);
+}
+
+
+static void
+on_save_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+    (void) UNUSED_data;
+    navbar_trigger_save_patch(GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button))));
 }
 
 
@@ -194,15 +198,25 @@ on_load_patch_finish(GObject *source, GAsyncResult *result, gpointer UNUSED_data
 }
 
 
-static void
-on_load_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+void
+navbar_trigger_load_patch(GtkWindow *parent) {
     GtkFileDialog   *dialog = gtk_file_dialog_new();
-    GtkWindow       *parent = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
-
-    (void) UNUSED_data;
 
     gtk_file_dialog_set_title(dialog, "Load Patch");
     gtk_file_dialog_open(dialog, parent, NULL, on_load_patch_finish, NULL);
+}
+
+
+static void
+on_load_patch_clicked(GtkButton *button, gpointer UNUSED_data) {
+    (void) UNUSED_data;
+    navbar_trigger_load_patch(GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button))));
+}
+
+
+void
+navbar_trigger_all_notes_off(void) {
+    broadcast_notes_off();
 }
 
 

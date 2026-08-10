@@ -1,13 +1,12 @@
 /*****************************************************************************
  *
- * gtk4/navbar.h
+ * gtk4/menubar.h
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * GTK4 port of src/gui_navbar.c's create_navbar(), scoped to the
- * PHASEX_NUM_PARTS=1 layout (the default build), for a visual/layout/color
- * parity comparison against the GTK2 GUI_DEBUG baseline. Not yet wired to
- * the real session/bank/patch backend -- see navbar.c for details.
+ * GTK4 port of src/gui_menubar.c. See menubar.c for the architectural
+ * gap this closes: GtkMenuBar/GtkMenu/GtkItemFactory don't exist in
+ * GTK4 at all.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,17 +22,14 @@
  * along with PHASEX.  If not, see <http://www.gnu.org/licenses/>.
  *
  *****************************************************************************/
-#ifndef _PHASEX_GTK4_NAVBAR_H_
-#define _PHASEX_GTK4_NAVBAR_H_
+#ifndef _PHASEX_GTK4_MENUBAR_H_
+#define _PHASEX_GTK4_MENUBAR_H_
 
 #include <gtk/gtk.h>
 
-GtkWidget *create_navbar(void);
+/* Registers the "win.*" actions on `window` and returns a GtkPopoverMenuBar
+   built from the corresponding GMenu model, ready to be packed at the top
+   of the main vbox. */
+GtkWidget *create_menubar(GtkWindow *window);
 
-/* Shared with menubar.c, so File/Load Patch and the navbar's Load Patch
-   button (etc.) trigger the exact same dialog + real backend call. */
-void navbar_trigger_load_patch(GtkWindow *parent);
-void navbar_trigger_save_patch(GtkWindow *parent);
-void navbar_trigger_all_notes_off(void);
-
-#endif /* _PHASEX_GTK4_NAVBAR_H_ */
+#endif /* _PHASEX_GTK4_MENUBAR_H_ */
