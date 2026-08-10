@@ -416,6 +416,26 @@ phasex_knob_init(PhasexKnob *knob) {
 
     gtk_widget_set_focusable(GTK_WIDGET(knob), TRUE);
 
+    /* This is a fixed-size sprite-sheet widget (one wide strip of
+       pre-rendered rotation frames, see phasex_knob_snapshot()) --
+       it must never be allocated more than measure()'s returned
+       size. GtkWidget defaults to GTK_ALIGN_FILL/hexpand=vexpand=
+       FALSE... but FALSE only means "don't request extra space", not
+       "don't accept it": a GtkGrid still stretches FILL children out
+       to their column/row's full size when a sibling cell (e.g. a
+       BOOL/BBOX param's row of several buttons) makes that column
+       wider than 28px. Once stretched, cairo_paint() in snapshot()
+       paints into that wider area, and since the source image is one
+       wide strip of frames, it shows a slice of *several* adjacent
+       frames at once instead of clipping to one -- looking exactly
+       like extra, stuck-together knobs that all move in sync (they're
+       really the same knob's neighboring animation frames). START
+       alignment stops the stretch at the source. */
+    gtk_widget_set_halign(GTK_WIDGET(knob), GTK_ALIGN_START);
+    gtk_widget_set_valign(GTK_WIDGET(knob), GTK_ALIGN_START);
+    gtk_widget_set_hexpand(GTK_WIDGET(knob), FALSE);
+    gtk_widget_set_vexpand(GTK_WIDGET(knob), FALSE);
+
     /* left button: absolute (click-to-angle) drag, page-decrement on a
        plain click */
     drag = gtk_gesture_drag_new();
