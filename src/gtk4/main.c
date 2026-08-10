@@ -7,8 +7,11 @@
  * Entry point for the experimental GTK4 preview (PHASEX_GTK4=ON).  Builds
  * just enough of a real window to compare against the GTK2 GUI_DEBUG
  * baseline (gtk2_debug_dump.txt): the "PatchGroup" navbar frame, styled via
- * theme-dark.css.  Not the full app yet -- see src/gtk4/navbar.c for what's
- * in scope for this pass.
+ * theme-dark.css, plus one param group (LFO-1).  Calls
+ * phasex_gtk4_backend_init() first to bring up the real session/bank/
+ * patch backend (see backend_init.c) before building any widgets, so the
+ * navbar can read and drive real state.  Not the full app yet -- see
+ * src/gtk4/navbar.c for what's in scope for this pass.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +31,10 @@
 #include "navbar.h"
 #include "paramgroup.h"
 #include "gui_debug4.h"
+#include "backend_init.h"
+#include "session.h"
+#include "patch.h"
+#include "bank.h"
 
 
 #ifndef PHASEX_GTK4_CSS_DIR
@@ -73,6 +80,13 @@ int
 main(int argc, char **argv) {
     GtkApplication  *app;
     int             status;
+
+    phasex_gtk4_backend_init();
+
+    g_print("[backend] real state after init: visible_sess_num=%u visible_part_num=%u "
+            "program=%u patch_name=\"%s\"\n",
+            visible_sess_num, visible_part_num, get_visible_program_number(),
+            (get_visible_patch()->name != NULL) ? get_visible_patch()->name : "(null)");
 
     app = gtk_application_new("org.phasex.gtk4preview", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
