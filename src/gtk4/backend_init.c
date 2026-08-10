@@ -221,6 +221,23 @@ phasex_gtk4_backend_init(void) {
     init_patch_bank(NULL);
     init_session_bank(NULL);
 
+    /* sample_rate/f_sample_rate default to 0 (engine.c) until
+       init_audio() negotiates a real rate with the audio driver --
+       which we never call. start_midi_clock() divides by
+       f_sample_rate to compute nsec_per_period/nsec_per_frame, so
+       leaving it at 0 turns those into +Infinity, which propagates
+       into get_midi_cycle_frame() as a garbage (often negative)
+       cycle_frame -- and get_midi_cycle_frame() calls
+       phasex_shutdown() (exit(1) in this preview) if cycle_frame < 0.
+       That's the exact "clicking Test Note or Notes Off makes the
+       whole app quit" bug: it's not a crash, it's phasex_shutdown()
+       being called on purpose in response to nonsensical timing
+       state, because nothing had ever given this preview a sample
+       rate to time against. Seed a plausible fake one so the timing
+       math produces sane, positive values. */
+    sample_rate   = DEFAULT_SAMPLE_RATE;
+    f_sample_rate = (sample_t) DEFAULT_SAMPLE_RATE;
+
     /* Needed for the Test Note button: queue_midi_event()'s cycle-frame
        math (timekeeping.c) and the MIDI ring-buffer index (buffer.c)
        both need a starting reference, normally set up by the audio
