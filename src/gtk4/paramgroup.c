@@ -165,6 +165,10 @@ create_param_group_view(int group_index) {
 
     frame = gtk_frame_new(NULL);
     gtk_widget_add_css_class(frame, "param-group-frame");
+    /* Each group should hug its own content height rather than being
+       stretched by whatever container packs it (a GtkFlowBox row's
+       tallest neighbor, a GtkBox's leftover space, ...). */
+    gtk_widget_set_valign(frame, GTK_ALIGN_START);
 
     title = gtk_label_new(group->label);
     gtk_label_set_use_markup(GTK_LABEL(title), TRUE);

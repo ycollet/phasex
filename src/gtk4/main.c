@@ -12,14 +12,20 @@
  * building any widgets, so the navbar and param groups can read and
  * drive real state.
  *
- * Param groups are packed into a GtkFlowBox inside a scrolled window
- * rather than the real app's notebook/one-page/widescreen multi-column
- * layouts (gui_layout.c's create_param_notebook()/_one_page()/
- * _widescreen()) -- those depend on setting_window_layout, which isn't
- * wired to anything real yet (see menubar.c's View menu). A flow box
- * that wraps groups left-to-right, as many as fit per row, is a
- * reasonable stand-in for "some multi-column layout" without picking
- * one of the three prematurely.
+ * Param groups are packed into fixed columns inside a scrolled window,
+ * the same shape as the real app's create_param_one_page() (gui_layout.c):
+ * one vbox per PARAM_GROUP.full_x value, groups stacked top-to-bottom
+ * within their column. An earlier pass used a GtkFlowBox instead (groups
+ * wrapped left-to-right, as many as fit per row) as a stand-in for "some
+ * multi-column layout" without picking one of the real notebook/one-page/
+ * widescreen layouts prematurely -- but GtkFlowBox allocates every child
+ * in a row the height of that row's tallest child, so a short group next
+ * to a tall one got stretched into mostly empty frame. Fixed columns
+ * don't have that problem: each column's height follows its own content,
+ * independent of its neighbors, matching what create_param_one_page()
+ * actually looks like. Only full_x is used (not notebook_x/wide_x) since
+ * setting_window_layout isn't wired to anything real yet (see menubar.c's
+ * View menu) and one_page's column count/shape is a reasonable default.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,10 +63,13 @@ activate(GtkApplication *app, gpointer UNUSED_data) {
     GtkWidget           *window;
     GtkWidget           *vbox;
     GtkWidget           *scroller;
-    GtkWidget           *flowbox;
+    GtkWidget           *columns;
+    GtkWidget           *column;
     GtkCssProvider      *css;
     char                css_path[1024];
     int                 i;
+    int                 x;
+    int                 max_x = 0;
 
     (void) UNUSED_data;
 
@@ -73,19 +82,35 @@ activate(GtkApplication *app, gpointer UNUSED_data) {
     window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "phasex (GTK4 preview)");
 
-    flowbox = gtk_flow_box_new();
-    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flowbox), GTK_SELECTION_NONE);
-    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flowbox), 6);
-    gtk_widget_set_valign(flowbox, GTK_ALIGN_START);
+    /* Same fixed-column packing as gui_layout.c's create_param_one_page():
+       one vbox per PARAM_GROUP.full_x value, groups appended to their
+       column in param_group[] order (== one_page_order[], which is just
+       the identity permutation there). Each column stacks its groups
+       tightly, independently of how tall the other columns end up -- no
+       GtkFlowBox row to force same-row groups to a shared height. */
     for (i = 0; i < NUM_PARAM_GROUPS; i++) {
-        if (param_group[i].param_list[0] > -1) {
-            gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_param_group_view(i), -1);
+        if (param_group[i].full_x > max_x) {
+            max_x = param_group[i].full_x;
         }
+    }
+
+    columns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_set_homogeneous(GTK_BOX(columns), TRUE);
+
+    for (x = 0; x <= max_x; x++) {
+        column = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_widget_set_hexpand(column, TRUE);
+        for (i = 0; i < NUM_PARAM_GROUPS; i++) {
+            if ((param_group[i].param_list[0] > -1) && (param_group[i].full_x == x)) {
+                gtk_box_append(GTK_BOX(column), create_param_group_view(i));
+            }
+        }
+        gtk_box_append(GTK_BOX(columns), column);
     }
 
     scroller = gtk_scrolled_window_new();
     gtk_widget_set_vexpand(scroller, TRUE);
-    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), flowbox);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), columns);
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_append(GTK_BOX(vbox), create_menubar(GTK_WINDOW(window)));
