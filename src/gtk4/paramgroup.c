@@ -165,6 +165,14 @@ create_param_group_view(int group_index) {
 
     frame = gtk_frame_new(NULL);
     gtk_widget_add_css_class(frame, "param-group-frame");
+    /* GtkFlowBox allocates every child in a row the height of that
+       row's tallest child (its FlowBoxChild wrapper defaults to
+       GTK_ALIGN_FILL). Left alone, a 2-row group like "Input" or
+       "Chorus Phaser" gets stretched to match an 11-row neighbor like
+       "Filter" or "Osc-1", turning most of its frame into empty
+       background. Anchoring the frame itself to the top makes it hug
+       its own content instead of filling the allocated cell. */
+    gtk_widget_set_valign(frame, GTK_ALIGN_START);
 
     title = gtk_label_new(group->label);
     gtk_label_set_use_markup(GTK_LABEL(title), TRUE);
