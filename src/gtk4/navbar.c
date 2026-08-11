@@ -278,14 +278,13 @@ create_navbar(void) {
     char            knob_file[1024];
     int             col = 0;
 
+    /* No frame title here -- "phasex v0.14.97 (GTK4 preview)" used to sit
+       in its own reserved label band above this row, adding a visible gap
+       above Program #/Patch/Load/Save for no benefit: the same string
+       (name in the window titlebar, full version in Help > About) is
+       already shown elsewhere, so this copy was purely redundant. */
     frame = gtk_frame_new(NULL);
     gtk_widget_add_css_class(frame, "patch-group");
-
-    label = gtk_label_new("<b>phasex v0.14.97 (GTK4 preview)</b>");
-    gtk_label_set_use_markup(GTK_LABEL(label), TRUE);
-    gtk_widget_add_css_class(label, "group-name");
-    gtk_frame_set_label_widget(GTK_FRAME(frame), label);
-    gtk_frame_set_label_align(GTK_FRAME(frame), 1.0);
 
     content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_add_css_class(content, "patch-group-content");
