@@ -82,7 +82,11 @@ on_value_label_update(GtkAdjustment *adjustment, gpointer data) {
 
 /* PARAM_TYPE_INT/REAL/RATE/DTNT/LIST: knob (detent image for DTNT,
    plain for everything else, matching create_param_input()) + a
-   numeric value label, seeded from the real current value. */
+   numeric value label, seeded from the real current value.
+   create_param_input() fixes the value label's width (4 chars for
+   INT/REAL, 5 for RATE/DTNT) and left-justifies it so the label
+   doesn't shift the rest of the row around as its digit count
+   changes -- matched here via gtk_label_set_width_chars()/xalign. */
 static void
 add_knob_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
     GtkWidget       *label;
@@ -101,22 +105,28 @@ add_knob_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
 
     adj  = gtk_adjustment_new(value, lower, upper, 1, (info->leap > 0) ? info->leap : 1, 0);
     knob = phasex_knob_new(adj, (info->type == PARAM_TYPE_DTNT) ? detent_anim : plain_anim);
+    gtk_widget_set_halign(knob, GTK_ALIGN_CENTER);
     gtk_grid_attach(grid, knob, 1, (int) row, 1, 1);
 
     snprintf(text, sizeof(text), "%d", (int) value);
     value_label = gtk_label_new(text);
     gtk_widget_add_css_class(value_label, "numeric-label");
+    gtk_label_set_xalign(GTK_LABEL(value_label), 0.0);
+    gtk_label_set_width_chars(GTK_LABEL(value_label),
+            ((info->type == PARAM_TYPE_RATE) || (info->type == PARAM_TYPE_DTNT)) ? 5 : 4);
     gtk_grid_attach(grid, value_label, 2, (int) row, 1, 1);
 
     g_signal_connect(adj, "value-changed", G_CALLBACK(on_value_label_update), value_label);
 }
 
 
-/* PARAM_TYPE_BOOL/BBOX: a row of radio-style buttons, one per
-   info->list_labels[] entry (real label text/count -- unlike the
-   LFO-1 pass, no local guesswork needed since PARAM_INFO is real). */
+/* PARAM_TYPE_BOOL: a row of radio-style buttons, each with its label
+   beside it (button then label, left to right), one pair per
+   info->list_labels[] entry -- matches create_param_input()'s
+   PARAM_TYPE_BOOL case (button and label packed side by side in the
+   same hbox), e.g. "Polarity" showing "( ) [-1,1]  (o) [0,1]". */
 static void
-add_button_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
+add_bool_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
     GtkWidget   *label;
     GtkWidget   *hbox;
     GtkWidget   *button;
@@ -147,6 +157,55 @@ add_button_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
         gtk_label_set_use_markup(GTK_LABEL(button_label), TRUE);
         gtk_widget_add_css_class(button_label, "button-label");
         gtk_box_append(GTK_BOX(hbox), button_label);
+    }
+}
+
+
+/* PARAM_TYPE_BBOX: one column per info->list_labels[] entry, each
+   column its label stacked directly above its radio button -- matches
+   create_param_input()'s PARAM_TYPE_BBOX case (a 2-row table per
+   option: label in row 0, button in row 1), e.g. "Mix Mod" showing
+   "Off  Mix  AM  Mod" as a label row over a row of radio buttons,
+   rather than BOOL's side-by-side button-then-label pairs. */
+static void
+add_bbox_row(GtkGrid *grid, guint row, PARAM_INFO *info, PARAM *param) {
+    GtkWidget   *label;
+    GtkWidget   *hbox;
+    GtkWidget   *vbox;
+    GtkWidget   *button;
+    GtkWidget   *first_button = NULL;
+    GtkWidget   *button_label;
+    int         j;
+
+    label = gtk_label_new(info->label_text);
+    gtk_widget_add_css_class(label, "param-name");
+    gtk_label_set_xalign(GTK_LABEL(label), 1.0);
+    gtk_grid_attach(grid, label, 0, (int) row, 1, 1);
+
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_grid_attach(grid, hbox, 1, (int) row, 2, 1);
+
+    for (j = 0; (info->list_labels != NULL) && (info->list_labels[j] != NULL); j++) {
+        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+        button_label = gtk_label_new(info->list_labels[j]);
+        gtk_label_set_use_markup(GTK_LABEL(button_label), TRUE);
+        gtk_widget_add_css_class(button_label, "button-label");
+        gtk_widget_set_halign(button_label, GTK_ALIGN_START);
+        gtk_box_append(GTK_BOX(vbox), button_label);
+
+        button = gtk_check_button_new();
+        if (first_button == NULL) {
+            first_button = button;
+        } else {
+            gtk_check_button_set_group(GTK_CHECK_BUTTON(button), GTK_CHECK_BUTTON(first_button));
+        }
+        gtk_check_button_set_active(GTK_CHECK_BUTTON(button), (j == param->value.cc_val));
+        gtk_widget_add_css_class(button, "param-button");
+        gtk_widget_set_halign(button, GTK_ALIGN_CENTER);
+        gtk_box_append(GTK_BOX(vbox), button);
+
+        gtk_box_append(GTK_BOX(hbox), vbox);
     }
 }
 
@@ -185,8 +244,10 @@ create_param_group_view(int group_index) {
         PARAM_INFO      *info    = get_param_info_by_id(param_id);
         PARAM           *param   = &patch->param[param_id];
 
-        if ((info->type == PARAM_TYPE_BOOL) || (info->type == PARAM_TYPE_BBOX)) {
-            add_button_row(GTK_GRID(grid), row, info, param);
+        if (info->type == PARAM_TYPE_BOOL) {
+            add_bool_row(GTK_GRID(grid), row, info, param);
+        } else if (info->type == PARAM_TYPE_BBOX) {
+            add_bbox_row(GTK_GRID(grid), row, info, param);
         } else {
             add_knob_row(GTK_GRID(grid), row, info, param);
         }
