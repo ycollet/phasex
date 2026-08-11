@@ -35,9 +35,12 @@
  * ever builds one fixed layout). ALSA and JACK now list real devices/
  * ports (device_enum.c), ported from alsa_pcm.c/alsa_seq.c/rawmidi.c/
  * jack.c's enumeration functions without linking those files whole --
- * each row is still informational only, not yet wired to a real
- * connect/subscribe action (gui_alsa.c's on_select_alsa_... family,
- * gui_jack.c's on_select_jack_midi_port).
+ * each real device/port row is enabled (clicking is a no-op for now,
+ * same as Reset Patch/Load MIDI Map above) since it carries real
+ * information, not yet wired to a real connect/subscribe action
+ * (gui_alsa.c's on_select_alsa_... family, gui_jack.c's on_select_
+ * jack_midi_port). Only the "(none found)" fallback row is disabled --
+ * that one really is just informational text, not a device.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -195,15 +198,20 @@ static const GActionEntry win_actions[] = {
     { "save-midimap-as", placeholder_action, NULL, NULL,   NULL },
     { "about",          on_about,         NULL, NULL,      NULL },
     { "help",           on_help,          NULL, NULL,      NULL },
-    /* Disabled below, right after the action group is built. Every
-       row in the ALSA/JACK submenus (build_alsa_menu()/build_jack_
-       menu(), real device/port names or the empty-category fallback)
-       uses one of these -- a GMenuItem with a NULL action doesn't
-       reliably render at all in GtkPopoverMenuBar, it needs a real
-       action reference to show up as a (greyed-out, informational-
-       only for now) row with its label. */
+    /* Disabled below, right after the action group is built -- these
+       two back only the "(none found)" fallback row in the ALSA/JACK
+       submenus (build_alsa_menu()/build_jack_menu()), which really is
+       just informational text, not a device. */
     { "alsa-placeholder", placeholder_action, NULL, NULL,  NULL },
     { "jack-placeholder", placeholder_action, NULL, NULL,  NULL },
+    /* Real device/port rows in those same submenus use these instead,
+       left enabled (like Reset Patch/Load MIDI Map above) since they
+       carry real information even though clicking one doesn't do
+       anything yet. A GMenuItem with a NULL action doesn't reliably
+       render at all in GtkPopoverMenuBar, so it still needs a real
+       action reference. */
+    { "alsa-device-info", placeholder_action, NULL, NULL,  NULL },
+    { "jack-port-info",   placeholder_action, NULL, NULL,  NULL },
 };
 
 
@@ -339,21 +347,21 @@ build_midi_menu(void) {
 
 
 /* Real ALSA/JACK enumeration (device_enum.c), one section per device/
-   port category -- falls back to a single disabled "(none found)" row
-   per category so an empty category still renders as a visible row
-   rather than an empty section, matching the ALSA/JACK top-level
-   placeholder fix. */
+   port category. Real entries use item_action (enabled); an empty
+   category falls back to a single row using empty_action (disabled)
+   with empty_label, so it still renders as a visible, honestly-inert
+   row rather than an empty section. */
 static void
 append_device_list_section(GMenu *menu, GPtrArray *devices, const char *empty_label,
-                           const char *detailed_action) {
+                           const char *empty_action, const char *item_action) {
     GMenu   *section = g_menu_new();
     guint   i;
 
     if (devices->len == 0) {
-        g_menu_append(section, empty_label, detailed_action);
+        g_menu_append(section, empty_label, empty_action);
     } else {
         for (i = 0; i < devices->len; i++) {
-            g_menu_append(section, g_ptr_array_index(devices, i), detailed_action);
+            g_menu_append(section, g_ptr_array_index(devices, i), item_action);
         }
     }
     g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
@@ -367,13 +375,13 @@ build_alsa_menu(void) {
     GMenu *menu = g_menu_new();
 
     append_device_list_section(menu, device_enum_alsa_pcm_playback(),
-            "(no ALSA PCM playback devices found)", "win.alsa-placeholder");
+            "(no ALSA PCM playback devices found)", "win.alsa-placeholder", "win.alsa-device-info");
     append_device_list_section(menu, device_enum_alsa_seq_hw(),
-            "(no ALSA sequencer hardware ports found)", "win.alsa-placeholder");
+            "(no ALSA sequencer hardware ports found)", "win.alsa-placeholder", "win.alsa-device-info");
     append_device_list_section(menu, device_enum_alsa_seq_sw(),
-            "(no ALSA sequencer software ports found)", "win.alsa-placeholder");
+            "(no ALSA sequencer software ports found)", "win.alsa-placeholder", "win.alsa-device-info");
     append_device_list_section(menu, device_enum_alsa_rawmidi(),
-            "(no ALSA raw MIDI devices found)", "win.alsa-placeholder");
+            "(no ALSA raw MIDI devices found)", "win.alsa-placeholder", "win.alsa-device-info");
 
     return G_MENU_MODEL(menu);
 }
@@ -384,7 +392,7 @@ build_jack_menu(void) {
     GMenu *menu = g_menu_new();
 
     append_device_list_section(menu, device_enum_jack_midi(),
-            "(no JACK MIDI ports found -- is a JACK server running?)", "win.jack-placeholder");
+            "(no JACK MIDI ports found -- is a JACK server running?)", "win.jack-placeholder", "win.jack-port-info");
 
     return G_MENU_MODEL(menu);
 }
