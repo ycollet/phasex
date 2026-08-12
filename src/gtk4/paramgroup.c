@@ -248,6 +248,11 @@ create_param_group_view(int group_index) {
        (GTK_EXPAND without GTK_FILL on the knob/value table cells, which
        GTK2 centers within any extra allocated space by default). */
     gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+    /* Without this, the last row's knob/button sits flush against the
+       frame's bottom border -- the real GTK2 app's table has the same
+       row spacing above and below every row, so the last row always
+       had breathing room below it too. */
+    gtk_widget_set_margin_bottom(grid, 6);
     gtk_frame_set_child(GTK_FRAME(frame), grid);
 
     for (k = 0, row = 0; (k < 16) && (group->param_list[k] > -1); k++, row++) {
