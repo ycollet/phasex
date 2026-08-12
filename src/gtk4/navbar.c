@@ -304,6 +304,17 @@ create_navbar(void) {
     gtk_widget_add_css_class(spin, "numeric-entry");
     gtk_box_append(GTK_BOX(box), spin);
 
+    /* Matches gui_navbar.c's real create_navbar(): each of these
+       clusters is its own GTK_EXPAND table cell, right/left/center-
+       justified within it (table_add_widget()'s JUSTIFY_* argument) --
+       not packed tight left-to-right the way a plain GtkBox would.
+       Ported here as hexpand + halign per grid column, since a
+       GtkGrid distributes leftover width across every hexpand column
+       the same way GTK2's table distributed it across every EXPAND
+       cell. Without this, every cluster bunches up on the left with
+       all the navbar's extra width going unused on the right. */
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_halign(box, GTK_ALIGN_END);
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** Patch name (label + entry) *** */
@@ -325,6 +336,8 @@ create_navbar(void) {
 
     g_signal_connect(program_adj, "value-changed", G_CALLBACK(on_program_changed), NULL);
 
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_halign(box, GTK_ALIGN_END);
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** Patch load/save buttons *** */
@@ -334,6 +347,8 @@ create_navbar(void) {
                    G_CALLBACK(on_load_patch_clicked)));
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Save\nPatch</small>",
                    G_CALLBACK(on_save_patch_clicked)));
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_halign(box, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** Patch-modified indicator *** */
@@ -342,6 +357,7 @@ create_navbar(void) {
     gtk_widget_add_css_class(label, "indicator-label");
     gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
     gtk_box_append(GTK_BOX(vbox), label);
+    gtk_widget_set_halign(vbox, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), vbox, col++, 0, 1, 1);
 
     /* *** Test note / notes off buttons *** */
@@ -351,6 +367,8 @@ create_navbar(void) {
                    G_CALLBACK(on_test_note_clicked)));
     gtk_box_append(GTK_BOX(box), make_phasex_button("<small>Notes\nOff</small>",
                    G_CALLBACK(on_notes_off_clicked)));
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_halign(box, GTK_ALIGN_CENTER);
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     /* *** MIDI channel selector (label + knob + value label) *** */
@@ -380,6 +398,8 @@ create_navbar(void) {
     gtk_box_append(GTK_BOX(box), midi_channel_label);
     g_signal_connect(midi_channel_adj, "value-changed", G_CALLBACK(on_midi_channel_changed), NULL);
 
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_halign(box, GTK_ALIGN_END);
     gtk_grid_attach(GTK_GRID(grid), box, col++, 0, 1, 1);
 
     return frame;
