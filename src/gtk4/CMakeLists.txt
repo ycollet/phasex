@@ -1,7 +1,5 @@
 # Real, toolkit-agnostic backend files (session/bank/patch/param data
-# layer), linked in for the navbar-backend-wiring pass. See
-# backend_init.c for why phasex.c itself, and the audio/MIDI driver
-# files, are deliberately NOT included here.
+# layer), linked in for the navbar-backend-wiring pass.
 set(phasex_gtk4_backend_SOURCES
   ${CMAKE_SOURCE_DIR}/src/bank.c
   ${CMAKE_SOURCE_DIR}/src/session.c
@@ -21,6 +19,15 @@ set(phasex_gtk4_backend_SOURCES
   ${CMAKE_SOURCE_DIR}/src/midi_event.c
   ${CMAKE_SOURCE_DIR}/src/midi_process.c)
 
+# Real JACK audio/MIDI driver files -- see audio_init.c for why these
+# (unlike settings.c/midimap.c/phasex.c) are safe to link wholesale:
+# none of them touch GTK2.
+set(phasex_gtk4_jack_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/driver.c
+  ${CMAKE_SOURCE_DIR}/src/jack.c
+  ${CMAKE_SOURCE_DIR}/src/jack_midi.c
+  ${CMAKE_SOURCE_DIR}/src/jack_transport.c)
+
 add_executable(phasex-gtk4-preview
   main.c
   gtkknob.c gtkknob.h
@@ -31,7 +38,9 @@ add_executable(phasex-gtk4-preview
   param_groups_data.c
   gui_debug4.c gui_debug4.h
   backend_init.c backend_init.h
-  ${phasex_gtk4_backend_SOURCES})
+  audio_init.c audio_init.h
+  ${phasex_gtk4_backend_SOURCES}
+  ${phasex_gtk4_jack_SOURCES})
 
 target_include_directories(phasex-gtk4-preview PRIVATE
   ${CMAKE_BINARY_DIR}

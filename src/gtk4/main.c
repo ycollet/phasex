@@ -12,6 +12,18 @@
  * building any widgets, so the navbar and param groups can read and
  * drive real state.
  *
+ * As of this pass, main() also brings up real JACK audio/MIDI I/O (see
+ * audio_init.c) before the window is built: phasex_gtk4_audio_init()
+ * blocks until a real sample rate is negotiated with JACK (same as
+ * phasex.c's real main() -- this can block indefinitely with no window
+ * shown at all if no JACK/ALSA server is ever reachable, since unlike
+ * the real app, this preview doesn't run a separate GUI thread in
+ * parallel with that wait), then activate() starts the engine/audio/
+ * MIDI threads for real once the window is up. Without this, the
+ * preview never opened a real JACK client at all, so it never showed up
+ * in a JACK session manager and produced no audio or MIDI whatsoever --
+ * every prior pass was state/widget-only.
+ *
  * Param groups are packed into fixed columns inside a scrolled window,
  * the same shape as the real app's create_param_one_page() (gui_layout.c):
  * one vbox per PARAM_GROUP.full_x value, groups stacked top-to-bottom
@@ -47,6 +59,7 @@
 #include "paramgroup.h"
 #include "gui_debug4.h"
 #include "backend_init.h"
+#include "audio_init.h"
 #include "session.h"
 #include "patch.h"
 #include "bank.h"
@@ -121,6 +134,13 @@ activate(GtkApplication *app, gpointer UNUSED_data) {
     gtk_window_set_default_size(GTK_WINDOW(window), 1400, 900);
     gtk_window_present(GTK_WINDOW(window));
 
+    /* Real engine threads + real JACK audio/MIDI I/O, now that a real
+       sample rate and real lookup tables exist (phasex_gtk4_audio_init(),
+       called from main() before the window was ever built) -- this is
+       what makes the JACK client actually appear in a session manager
+       and produce sound, unlike every earlier GTK4-preview pass. */
+    phasex_gtk4_audio_start();
+
     gui_debug4_dump_window(window);
 
     if (g_getenv("PHASEX_GTK4_DUMP_AND_EXIT") != NULL) {
@@ -134,7 +154,14 @@ main(int argc, char **argv) {
     GtkApplication  *app;
     int             status;
 
+    /* Order matters here, same as phasex.c's real main(): param tables
+       first, then block until JACK gives us a real sample rate (see
+       audio_init.c), then everything in the patch/session data layer
+       that reads f_sample_rate or env_table[] during its own init
+       (init_engine_internals() -- see backend_init.h). */
     phasex_gtk4_backend_init();
+    phasex_gtk4_audio_init();
+    phasex_gtk4_backend_init_patch_data();
 
     g_print("[backend] real state after init: visible_sess_num=%u visible_part_num=%u "
             "program=%u patch_name=\"%s\"\n",
@@ -144,6 +171,12 @@ main(int argc, char **argv) {
     app = gtk_application_new("org.phasex.gtk4preview", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);
+
+    /* Stop engine/audio/MIDI threads and close the JACK client cleanly
+       so PHASEX doesn't leave a stale client registered with the JACK
+       server / session manager after the window closes. */
+    phasex_gtk4_audio_stop();
+
     g_object_unref(app);
 
     return status;

@@ -123,7 +123,6 @@ phasex_shutdown(const char *msg) {
    do regardless of GUI toolkit. Redraw-triggering hooks are true
    no-ops for now -- the GTK4 navbar reads state instead of being
    pushed updates, until a later pass adds live notification. */
-int             engine_stopped                 = 1;
 pthread_t       engine_thread_p[MAX_PARTS];
 int             gtkui_ready                    = 0;
 int             pending_shutdown                = 0;
@@ -133,13 +132,6 @@ int             cc_edit_active                 = 0;
 int             cc_edit_ignore_midi            = 0;
 int             cc_edit_cc_num                 = 0;
 int             ccmatrix[128][16];
-
-
-void
-set_engine_priority(GtkWidget *widget, gpointer data) {
-    (void) widget;
-    (void) data;
-}
 
 
 void
@@ -216,32 +208,28 @@ phasex_gtk4_backend_init(void) {
     init_params();
     init_param_groups();
     init_param_pages();
+}
+
+
+/* Split out from phasex_gtk4_backend_init() (see backend_init.h) --
+   must run after audio_init.c's phasex_gtk4_audio_init() has negotiated
+   a real sample rate with JACK, since init_engine_internals() computes
+   several real values straight from f_sample_rate (aftertouch_smooth_len,
+   pitch_bend_smooth_len, global.dcR_const, delay->size) and reads
+   env_table[] (built by build_env_tables(), also part of
+   phasex_gtk4_audio_init()) -- both were previously either fake
+   (a hardcoded DEFAULT_SAMPLE_RATE) or simply never built, since no real
+   audio driver was ever wired up before now. init_buffer_indices()/
+   start_midi_clock() also moved out of here: jack_start() (src/jack.c,
+   called from phasex_gtk4_audio_start()) already does both for real once
+   the audio driver is actually running, the same way it does in the real
+   app's main() -- doing it twice would just mean the second (real) call
+   overwrites this preview's fake seed value, so there's no reason to
+   keep the fake one now that real audio is wired up. */
+void
+phasex_gtk4_backend_init_patch_data(void) {
     init_engine_internals();
     init_patch_param_data();
     init_patch_bank(NULL);
     init_session_bank(NULL);
-
-    /* sample_rate/f_sample_rate default to 0 (engine.c) until
-       init_audio() negotiates a real rate with the audio driver --
-       which we never call. start_midi_clock() divides by
-       f_sample_rate to compute nsec_per_period/nsec_per_frame, so
-       leaving it at 0 turns those into +Infinity, which propagates
-       into get_midi_cycle_frame() as a garbage (often negative)
-       cycle_frame -- and get_midi_cycle_frame() calls
-       phasex_shutdown() (exit(1) in this preview) if cycle_frame < 0.
-       That's the exact "clicking Test Note or Notes Off makes the
-       whole app quit" bug: it's not a crash, it's phasex_shutdown()
-       being called on purpose in response to nonsensical timing
-       state, because nothing had ever given this preview a sample
-       rate to time against. Seed a plausible fake one so the timing
-       math produces sane, positive values. */
-    sample_rate   = DEFAULT_SAMPLE_RATE;
-    f_sample_rate = (sample_t) DEFAULT_SAMPLE_RATE;
-
-    /* Needed for the Test Note button: queue_midi_event()'s cycle-frame
-       math (timekeeping.c) and the MIDI ring-buffer index (buffer.c)
-       both need a starting reference, normally set up by the audio
-       thread we're not running. */
-    init_buffer_indices(1);
-    start_midi_clock();
 }
