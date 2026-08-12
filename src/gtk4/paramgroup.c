@@ -237,6 +237,17 @@ create_param_group_view(int group_index) {
     grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grid), 0);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+    /* Since the fixed-column layout (main.c) gives every group in a
+       column the same width, a group whose own rows need less width
+       than its column-mates (e.g. "General" next to "Filter") would
+       otherwise sit flush against the frame's left edge, leaving all
+       the extra width as dead space on the right -- GtkGrid's default
+       GTK_ALIGN_FILL stretches the grid itself to the frame's full
+       width, and none of its columns hexpand to use that space. Center
+       the grid instead, matching the real GTK2 app's create_param_input()
+       (GTK_EXPAND without GTK_FILL on the knob/value table cells, which
+       GTK2 centers within any extra allocated space by default). */
+    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
     gtk_frame_set_child(GTK_FRAME(frame), grid);
 
     for (k = 0, row = 0; (k < 16) && (group->param_list[k] > -1); k++, row++) {
