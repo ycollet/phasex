@@ -19,14 +19,17 @@ set(phasex_gtk4_backend_SOURCES
   ${CMAKE_SOURCE_DIR}/src/midi_event.c
   ${CMAKE_SOURCE_DIR}/src/midi_process.c)
 
-# Real JACK audio/MIDI driver files -- see audio_init.c for why these
-# (unlike settings.c/midimap.c/phasex.c) are safe to link wholesale:
+# Real audio/MIDI driver files -- see audio_init.c/alsa_wiring.c for why
+# these (unlike settings.c/midimap.c/phasex.c) are safe to link wholesale:
 # none of them touch GTK2.
-set(phasex_gtk4_jack_SOURCES
+set(phasex_gtk4_driver_SOURCES
   ${CMAKE_SOURCE_DIR}/src/driver.c
   ${CMAKE_SOURCE_DIR}/src/jack.c
   ${CMAKE_SOURCE_DIR}/src/jack_midi.c
-  ${CMAKE_SOURCE_DIR}/src/jack_transport.c)
+  ${CMAKE_SOURCE_DIR}/src/jack_transport.c
+  ${CMAKE_SOURCE_DIR}/src/alsa_pcm.c
+  ${CMAKE_SOURCE_DIR}/src/alsa_seq.c
+  ${CMAKE_SOURCE_DIR}/src/rawmidi.c)
 
 add_executable(phasex-gtk4-preview
   main.c
@@ -39,8 +42,9 @@ add_executable(phasex-gtk4-preview
   gui_debug4.c gui_debug4.h
   backend_init.c backend_init.h
   audio_init.c audio_init.h
+  alsa_wiring.c alsa_wiring.h
   ${phasex_gtk4_backend_SOURCES}
-  ${phasex_gtk4_jack_SOURCES})
+  ${phasex_gtk4_driver_SOURCES})
 
 target_include_directories(phasex-gtk4-preview PRIVATE
   ${CMAKE_BINARY_DIR}
@@ -83,4 +87,10 @@ target_compile_definitions(phasex-gtk4-preview PRIVATE
   NUM_PARTS=${PHASEX_NUM_PARTS}
   PHASEX_GTK4_CSS_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
   PHASEX_GTK4_PIXMAP_DIR="${CMAKE_SOURCE_DIR}/pixmaps"
-  PHASEX_GTK4_REPO_DIR="${CMAKE_SOURCE_DIR}")
+  PHASEX_GTK4_REPO_DIR="${CMAKE_SOURCE_DIR}"
+  # rawmidi.h #errors out unless at least one raw MIDI backend is
+  # selected -- ALSA raw is the relevant one now that rawmidi.c is
+  # linked (see alsa_wiring.c). ENABLE_INPUTS (alsa_pcm.c's optional
+  # audio capture support) deliberately left undefined: this preview
+  # only needs playback.
+  ENABLE_RAWMIDI_ALSA_RAW)

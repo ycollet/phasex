@@ -36,23 +36,37 @@
  *
  * ALSA and JACK list real devices/ports (device_enum.c), ported from
  * alsa_pcm.c/alsa_seq.c/rawmidi.c's enumeration functions without
- * linking those files whole. JACK MIDI ports are now really wired up
- * (build_jack_menu() below): now that audio_init.c brings up a real
- * JACK client with a real midi_input_port, each row is its own
- * dynamically-created stateful boolean GAction, backed directly by
- * jack.c's own jack_midi_ports list -- toggling one calls real
- * jack_connect()/jack_disconnect() against the real jack_audio_client,
- * the same pair gui_jack.c's on_select_jack_midi_port() calls (just
- * synchronously instead of via a queued watchdog-cycle request, since
- * this preview has no separate watchdog thread to defer to and
- * jack_connect()/jack_disconnect() are safe to call from any thread).
- * ALSA rows are still real-but-inert (clicking is a no-op, same as
- * Reset Patch/Load MIDI Map above): connecting one for real would mean
- * either a new ALSA sequencer/rawmidi input client (for the MIDI
- * submenus) or actual driver-switching away from JACK (for PCM
- * playback) -- both real, separate pieces of work, not yet done. Only
- * the "(none found)" fallback rows are disabled -- those really are
- * just informational text, not a device.
+ * linking those files whole. Every row is really wired up now:
+ *
+ *   - JACK MIDI ports (build_jack_menu()): each row is its own
+ *     dynamically-created stateful boolean GAction, backed directly by
+ *     jack.c's own jack_midi_ports list -- toggling one calls real
+ *     jack_connect()/jack_disconnect() against the real
+ *     jack_audio_client, the same pair gui_jack.c's
+ *     on_select_jack_midi_port() calls (synchronously instead of via a
+ *     queued watchdog-cycle request -- see that function's comment).
+ *
+ *   - ALSA PCM playback / ALSA rawmidi (build_alsa_menu()'s
+ *     append_alsa_pcm_section()/append_alsa_rawmidi_section()): each is
+ *     a one-device-at-a-time radio group (a single stateful *string*
+ *     action, "win.alsa-pcm-device"/"win.alsa-rawmidi-device", one
+ *     GMenuItem target per device), since only one can be the active
+ *     device at a time -- selecting one calls alsa_wiring.c's real
+ *     driver-switch (stop/select/init/start against the real
+ *     alsa_pcm.c/rawmidi.c, now linked wholesale like jack.c).
+ *
+ *   - ALSA sequencer HW/SW (append_alsa_seq_section()): same
+ *     per-row-own-action shape as JACK MIDI ports (any number can be
+ *     subscribed at once), calling alsa_wiring.c's real
+ *     alsa_seq_subscribe_port()/alsa_seq_unsubscribe_port() against the
+ *     real alsa_seq_info.
+ *
+ * Only the "(none found)" fallback rows are disabled -- those really
+ * are just informational text, not a device. See alsa_wiring.c's file
+ * header for an important caveat: unlike the JACK wiring (verified
+ * against a real jackd -d dummy server), the ALSA PCM/seq/rawmidi
+ * wiring hasn't been runtime-tested at all -- this dev machine has no
+ * real ALSA stack to test against.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,10 +83,12 @@
  *
  *****************************************************************************/
 #include <stdio.h>
+#include <string.h>
 #include "menubar.h"
 #include "navbar.h"
 #include "device_enum.h"
 #include "jack.h"
+#include "alsa_wiring.h"
 
 
 static void
@@ -169,6 +185,48 @@ on_jack_midi_port_toggle(GSimpleAction *action, GVariant *UNUSED_param, gpointer
 }
 
 
+/* One of these is created per real ALSA sequencer port (see
+   append_alsa_seq_section()), same shape as on_jack_midi_port_toggle()
+   above and for the same reason: any number of ALSA sequencer ports
+   can be subscribed at once, so each needs its own independent
+   checkmark rather than sharing one action. `data` is the port's raw
+   ALSA name ("client:port"), owned (g_strdup()'d at menu-build time,
+   freed via free_closure_data when the action is destroyed). */
+static void
+on_alsa_seq_port_toggle(GSimpleAction *action, GVariant *UNUSED_param, gpointer data) {
+    const char  *raw_alsa_name = (const char *) data;
+    gboolean    connected;
+
+    (void) UNUSED_param;
+
+    connected = alsa_wiring_toggle_seq_port(raw_alsa_name);
+    g_simple_action_set_state(action, g_variant_new_boolean(connected));
+}
+
+
+/* ALSA PCM playback and ALSA rawmidi are one-device-at-a-time radio
+   groups (unlike JACK MIDI ports/ALSA sequencer ports above), so --
+   unlike those -- these two really do share one stateful *string*
+   action each across every row in their submenu (matching View/
+   Notebook|One Page|WideScreen's on_radio_action() shape), with the
+   real device switch (alsa_wiring.c) happening as a side effect of
+   selecting one. */
+static void
+on_alsa_pcm_device_selected(GSimpleAction *action, GVariant *param, gpointer UNUSED_data) {
+    (void) UNUSED_data;
+    alsa_wiring_select_pcm_playback(g_variant_get_string(param, NULL));
+    g_simple_action_set_state(action, param);
+}
+
+
+static void
+on_alsa_rawmidi_selected(GSimpleAction *action, GVariant *param, gpointer UNUSED_data) {
+    (void) UNUSED_data;
+    alsa_wiring_select_rawmidi(g_variant_get_string(param, NULL));
+    g_simple_action_set_state(action, param);
+}
+
+
 /* View/Notebook|One Page|WideScreen and Patch/Bank Memory Autosave|Warn|
    Protect: stateful radio actions. The state visibly updates (GTK draws
    the radio dot on whichever GMenuItem's target matches), but nothing
@@ -260,22 +318,24 @@ static const GActionEntry win_actions[] = {
     { "save-midimap-as", placeholder_action, NULL, NULL,   NULL },
     { "about",          on_about,         NULL, NULL,      NULL },
     { "help",           on_help,          NULL, NULL,      NULL },
-    /* Disabled below, right after the action group is built -- these
-       two back only the "(none found)" fallback row in the ALSA/JACK
-       submenus (build_alsa_menu()/build_jack_menu()), which really is
-       just informational text, not a device. */
+    /* Disabled below, right after the action group is built -- backs
+       only the "(none found)" fallback row in the ALSA/JACK submenus
+       (build_alsa_menu()/build_jack_menu()), which really is just
+       informational text, not a device. Every real device/port row
+       has its own real action now instead (per-row dynamically-created
+       actions for JACK MIDI ports/ALSA sequencer ports, the two
+       stateful string radio actions below for ALSA PCM/rawmidi) -- see
+       the file header comment. */
     { "alsa-placeholder", placeholder_action, NULL, NULL,  NULL },
     { "jack-placeholder", placeholder_action, NULL, NULL,  NULL },
-    /* Real ALSA rows use this instead, left enabled (like Reset Patch/
-       Load MIDI Map above) since they carry real information even
-       though clicking one doesn't do anything yet -- a GMenuItem with
-       a NULL action doesn't reliably render at all in
-       GtkPopoverMenuBar, so it still needs a real action reference.
-       Real JACK MIDI port rows don't use a shared action at all: each
-       gets its own dynamically-created stateful action instead (see
-       build_jack_menu()), since unlike this row, those are really
-       wired up now. */
-    { "alsa-device-info", placeholder_action, NULL, NULL,  NULL },
+    /* ALSA PCM playback / ALSA rawmidi: one-device-at-a-time radio
+       groups, unlike JACK MIDI ports/ALSA sequencer ports (each of
+       those gets its own per-row action -- see build_jack_menu()/
+       append_alsa_seq_section()). Initial state "''" (empty string)
+       matches reality: nothing has been selected away from the
+       default JACK audio/MIDI yet. */
+    { "alsa-pcm-device",     on_alsa_pcm_device_selected, "s", "''", NULL },
+    { "alsa-rawmidi-device", on_alsa_rawmidi_selected,    "s", "''", NULL },
 };
 
 
@@ -434,24 +494,129 @@ escape_mnemonic_underscores(const char *label) {
 }
 
 
-/* Real ALSA/JACK enumeration (device_enum.c), one section per device/
-   port category. Real entries use item_action (enabled); an empty
-   category falls back to a single row using empty_action (disabled)
-   with empty_label, so it still renders as a visible, honestly-inert
-   row rather than an empty section. */
+/* device_enum.c always formats its display strings as "[raw] rest...",
+   e.g. "[hw:0,0] MyCard: MyDevice" or "[0:1] MyClient: MyPort" -- the
+   bracketed prefix is exactly the raw ALSA identifier
+   (ALSA_PCM_HW_INFO/ALSA_SEQ_PORT/ALSA_RAWMIDI_HW_INFO's own
+   `alsa_name` field, verified by reading alsa_pcm.c/alsa_seq.c/
+   rawmidi.c's real hw-list builders) that alsa_wiring.c's functions
+   need to actually open/subscribe/switch to that device -- device_enum.c
+   only ever needed the display string, so it doesn't expose this
+   separately. Caller frees the result. */
+static char *
+extract_raw_alsa_name(const char *display) {
+    const char  *start = strchr(display, '[');
+    const char  *end;
+
+    if (start == NULL) {
+        return g_strdup(display);
+    }
+    start++;
+    end = strchr(start, ']');
+    if (end == NULL) {
+        return g_strdup(display);
+    }
+    return g_strndup(start, (gsize) (end - start));
+}
+
+
+/* ALSA PCM playback: one-device-at-a-time radio group (see
+   on_alsa_pcm_device_selected()). */
 static void
-append_device_list_section(GMenu *menu, GPtrArray *devices, const char *empty_label,
-                           const char *empty_action, const char *item_action) {
+append_alsa_pcm_section(GMenu *menu, GPtrArray *devices) {
     GMenu   *section = g_menu_new();
     guint   i;
 
     if (devices->len == 0) {
-        g_menu_append(section, empty_label, empty_action);
+        g_menu_append(section, "(no ALSA PCM playback devices found)", "win.alsa-placeholder");
     } else {
         for (i = 0; i < devices->len; i++) {
-            char *label = escape_mnemonic_underscores(g_ptr_array_index(devices, i));
+            const char  *display = g_ptr_array_index(devices, i);
+            char        *raw     = extract_raw_alsa_name(display);
+            char        *label   = escape_mnemonic_underscores(display);
+            GMenuItem   *item    = g_menu_item_new(label, NULL);
 
-            g_menu_append(section, label, item_action);
+            g_menu_item_set_action_and_target_value(item, "win.alsa-pcm-device", g_variant_new_string(raw));
+            g_menu_append_item(section, item);
+            g_object_unref(item);
+            g_free(label);
+            g_free(raw);
+        }
+    }
+    g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
+    g_object_unref(section);
+    g_ptr_array_free(devices, TRUE);
+}
+
+
+/* ALSA rawmidi: same one-device-at-a-time shape as ALSA PCM above (see
+   on_alsa_rawmidi_selected()) -- rawmidi.c's own real device switch
+   (setting_alsa_raw_midi_device + a driver restart) only ever has one
+   device open at a time, unlike ALSA sequencer's multi-port subscribe
+   model just below. */
+static void
+append_alsa_rawmidi_section(GMenu *menu, GPtrArray *devices) {
+    GMenu   *section = g_menu_new();
+    guint   i;
+
+    if (devices->len == 0) {
+        g_menu_append(section, "(no ALSA raw MIDI devices found)", "win.alsa-placeholder");
+    } else {
+        for (i = 0; i < devices->len; i++) {
+            const char  *display = g_ptr_array_index(devices, i);
+            char        *raw     = extract_raw_alsa_name(display);
+            char        *label   = escape_mnemonic_underscores(display);
+            GMenuItem   *item    = g_menu_item_new(label, NULL);
+
+            g_menu_item_set_action_and_target_value(item, "win.alsa-rawmidi-device", g_variant_new_string(raw));
+            g_menu_append_item(section, item);
+            g_object_unref(item);
+            g_free(label);
+            g_free(raw);
+        }
+    }
+    g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
+    g_object_unref(section);
+    g_ptr_array_free(devices, TRUE);
+}
+
+
+/* ALSA sequencer HW/SW: same per-row-own-action shape as
+   build_jack_menu()'s real JACK MIDI ports (see on_alsa_seq_port_toggle()
+   for why), used for both the HW and SW submenus -- action_prefix keeps
+   their dynamically-generated action names from colliding with each
+   other. `actions` must still be alive (create_menubar() unrefs its own
+   reference only after both calls return) since each port's toggle
+   action is registered into it here. */
+static void
+append_alsa_seq_section(GMenu *menu, GSimpleActionGroup *actions, GPtrArray *devices,
+                        const char *action_prefix, const char *empty_label) {
+    GMenu   *section = g_menu_new();
+    guint   i;
+
+    if (devices->len == 0) {
+        g_menu_append(section, empty_label, "win.alsa-placeholder");
+    } else {
+        for (i = 0; i < devices->len; i++) {
+            const char      *display = g_ptr_array_index(devices, i);
+            char            *raw     = extract_raw_alsa_name(display);
+            char            *label   = escape_mnemonic_underscores(display);
+            GSimpleAction   *action;
+            char            action_name[48];
+            char            win_action_name[56];
+
+            snprintf(action_name, sizeof(action_name), "%s-%u", action_prefix, i);
+            action = g_simple_action_new_stateful(action_name, NULL, g_variant_new_boolean(FALSE));
+            /* `raw` is transferred to the closure -- freed by
+               free_closure_data when the action itself is destroyed,
+               same as build_jack_menu()'s per-port actions below. */
+            g_signal_connect_data(action, "activate", G_CALLBACK(on_alsa_seq_port_toggle),
+                    raw, free_closure_data, (GConnectFlags) 0);
+            g_action_map_add_action(G_ACTION_MAP(actions), G_ACTION(action));
+            g_object_unref(action);
+
+            snprintf(win_action_name, sizeof(win_action_name), "win.%s", action_name);
+            g_menu_append(section, label, win_action_name);
             g_free(label);
         }
     }
@@ -462,34 +627,31 @@ append_device_list_section(GMenu *menu, GPtrArray *devices, const char *empty_la
 
 
 static GMenuModel *
-build_alsa_menu(void) {
+build_alsa_menu(GSimpleActionGroup *actions) {
     GMenu *menu = g_menu_new();
 
-    append_device_list_section(menu, device_enum_alsa_pcm_playback(),
-            "(no ALSA PCM playback devices found)", "win.alsa-placeholder", "win.alsa-device-info");
-    append_device_list_section(menu, device_enum_alsa_seq_hw(),
-            "(no ALSA sequencer hardware ports found)", "win.alsa-placeholder", "win.alsa-device-info");
-    append_device_list_section(menu, device_enum_alsa_seq_sw(),
-            "(no ALSA sequencer software ports found)", "win.alsa-placeholder", "win.alsa-device-info");
-    append_device_list_section(menu, device_enum_alsa_rawmidi(),
-            "(no ALSA raw MIDI devices found)", "win.alsa-placeholder", "win.alsa-device-info");
+    append_alsa_pcm_section(menu, device_enum_alsa_pcm_playback());
+    append_alsa_seq_section(menu, actions, device_enum_alsa_seq_hw(), "alsa-seq-hw",
+            "(no ALSA sequencer hardware ports found)");
+    append_alsa_seq_section(menu, actions, device_enum_alsa_seq_sw(), "alsa-seq-sw",
+            "(no ALSA sequencer software ports found)");
+    append_alsa_rawmidi_section(menu, device_enum_alsa_rawmidi());
 
     return G_MENU_MODEL(menu);
 }
 
 
-/* Unlike build_alsa_menu()'s categories (still real-but-inert, see the
-   file header comment), JACK MIDI ports are backed directly by jack.c's
-   own jack_midi_ports list -- already populated for real by
-   jack_audio_init() (audio_init.c's phasex_gtk4_audio_init(), called
-   well before create_menubar()) -- rather than device_enum.c's
-   throwaway-client enumeration, since jack_midi_ports already carries
-   real per-port `connected` state and is what jack_connect()/
-   jack_disconnect() actually need a name to act on. `actions` must
-   still be alive (create_menubar() unrefs its own reference only after
-   this returns) since each port's toggle action is registered into it
-   here, dynamically, one real GAction per port -- see
-   on_jack_midi_port_toggle() for why a single shared action won't do. */
+/* JACK MIDI ports are backed directly by jack.c's own jack_midi_ports
+   list -- already populated for real by jack_audio_init() (audio_init.c's
+   phasex_gtk4_audio_init(), called well before create_menubar()) --
+   rather than device_enum.c's throwaway-client enumeration, since
+   jack_midi_ports already carries real per-port `connected` state and
+   is what jack_connect()/jack_disconnect() actually need a name to act
+   on. `actions` must still be alive (create_menubar() unrefs its own
+   reference only after this returns) since each port's toggle action
+   is registered into it here, dynamically, one real GAction per port --
+   see on_jack_midi_port_toggle() for why a single shared action won't
+   do. */
 static GMenuModel *
 build_jack_menu(GSimpleActionGroup *actions) {
     GMenu           *menu    = g_menu_new();
@@ -543,6 +705,7 @@ create_menubar(GtkWindow *window) {
     GMenu               *menubar = g_menu_new();
     GSimpleActionGroup  *actions = g_simple_action_group_new();
     GtkWidget           *bar;
+    GMenuModel          *alsa_menu;
     GMenuModel          *jack_menu;
 
     g_action_map_add_action_entries(G_ACTION_MAP(actions), win_actions,
@@ -556,8 +719,10 @@ create_menubar(GtkWindow *window) {
     g_simple_action_set_enabled(
             G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(actions), "jack-placeholder")), FALSE);
 
-    /* Registers one real GAction per JACK MIDI port into `actions`, so
-       must run before it's unreffed below -- see build_jack_menu(). */
+    /* Register one real GAction per ALSA sequencer port / JACK MIDI
+       port into `actions`, so both calls must run before it's unreffed
+       below -- see append_alsa_seq_section()/build_jack_menu(). */
+    alsa_menu = build_alsa_menu(actions);
     jack_menu = build_jack_menu(actions);
     g_object_unref(actions);
 
@@ -565,7 +730,7 @@ create_menubar(GtkWindow *window) {
     g_menu_append_submenu(menubar, "View", build_view_menu());
     g_menu_append_submenu(menubar, "Patch", build_patch_menu());
     g_menu_append_submenu(menubar, "MIDI", build_midi_menu());
-    g_menu_append_submenu(menubar, "ALSA", build_alsa_menu());
+    g_menu_append_submenu(menubar, "ALSA", alsa_menu);
     g_menu_append_submenu(menubar, "JACK", jack_menu);
     g_menu_append_submenu(menubar, "Help", build_help_menu());
 

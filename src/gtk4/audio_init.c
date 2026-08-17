@@ -6,9 +6,9 @@
  *
  * Real JACK audio/MIDI startup for the GTK4 preview, using the real
  * driver.c/jack.c/jack_midi.c/jack_transport.c (see CMakeLists.txt's
- * phasex_gtk4_jack_SOURCES) instead of the fake DEFAULT_SAMPLE_RATE seed
- * backend_init.c used before this file existed. Those four files are
- * GTK-free (checked: zero gtk_... / Gtk... references) and mostly
+ * phasex_gtk4_driver_SOURCES) instead of the fake DEFAULT_SAMPLE_RATE
+ * seed backend_init.c used before this file existed. Those four files
+ * are GTK-free (checked: zero gtk_... / Gtk... references) and mostly
  * self-contained, but they still need a few things phasex.c/settings.c
  * would normally provide:
  *
@@ -40,23 +40,18 @@
  *     linked -- so it's copied here rather than linking all of
  *     midimap.c for one self-contained function.
  *
- *   - Stand-ins for the ALSA PCM/sequencer/rawmidi driver entry points
- *     (alsa_pcm_init/_thread/_watchdog_cycle/_get_hw_list/_hw_list_free,
- *     alsa_seq_init/_thread/_watchdog_cycle/_get_port_list/_port_free,
- *     rawmidi_init/_thread/_watchdog_cycle,
- *     alsa_rawmidi_get_hw_list/_hw_info_free). select_audio_driver()/
- *     select_midi_driver() (driver.c) take the *address* of every
- *     driver's entry points unconditionally, to populate their
- *     DRIVER_FUNC/THREAD_FUNC/DRIVER_VOID_FUNC tables for whichever
- *     driver ID gets selected at runtime -- so all of them need to
- *     exist at link time even though phasex_gtk4_audio_init() below
- *     always force-selects JACK for both audio and MIDI, and none of
- *     these ALSA entry points are ever actually called. The real
- *     implementations live in alsa_pcm.c/alsa_seq.c/rawmidi.c, which
- *     (like settings.c) carry a lot of driver-lifecycle state this
- *     preview has no use for -- same tradeoff device_enum.c documents
- *     for why it re-implements enumeration instead of linking those
- *     files wholesale.
+ *   - Storage for the settings.c-owned config globals alsa_pcm.c/
+ *     alsa_seq.c/rawmidi.c read directly (setting_alsa_pcm_device,
+ *     setting_alsa_seq_port, setting_alsa_raw_midi_device,
+ *     setting_oss_midi_device, setting_generic_midi_device,
+ *     setting_sample_rate, setting_buffer_period_size,
+ *     setting_force_16bit, setting_enable_mmap, setting_enable_inputs,
+ *     setting_audio_priority, setting_midi_priority) -- same reasoning
+ *     as the JACK-specific ones above. alsa_pcm.c/alsa_seq.c/rawmidi.c
+ *     are linked wholesale too (like jack.c -- see CMakeLists.txt),
+ *     since they're just as GTK-free; alsa_wiring.c is where
+ *     select_audio_driver(ALSA_PCM)/select_midi_driver(ALSA_SEQ/
+ *     RAW_ALSA) actually get used.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -204,138 +199,34 @@ build_ccmatrix(void) {
 }
 
 
-/* ALSA PCM/sequencer/rawmidi dead-path stand-ins -- see file header
-   comment for why these must exist even though they're never called.
-   Struct tags match the real ones (alsa_pcm.h/alsa_seq.h/rawmidi.h) for
-   readability, but are kept opaque here rather than including those
-   headers: alsa_seq.h pulls in a bare "asoundlib.h" (unlike alsa_pcm.h's
-   "alsa/asoundlib.h"), an existing inconsistency in the real headers
-   that isn't this file's concern to fix, and none of these stand-ins
-   need the real struct layout since they never touch one. */
-struct alsa_pcm_info;
-struct alsa_pcm_hw_info;
-struct alsa_seq_port;
-struct alsa_seq_info;
-struct alsa_rawmidi_hw_info;
-struct rawmidi_info;
-
-/* Data globals (not just function pointers) that scan_audio_and_midi()/
-   query_audio_driver_status() (driver.c -- informational status/scan
-   helpers this preview never calls) read directly. */
-struct alsa_pcm_info            *alsa_pcm_info          = NULL;
-char                             *alsa_pcm_device        = NULL;
-struct alsa_pcm_hw_info         *alsa_pcm_capture_hw     = NULL;
-struct alsa_pcm_hw_info         *alsa_pcm_playback_hw    = NULL;
-int                              alsa_pcm_hw_changed     = 0;
-unsigned long                    alsa_pcm_buffer_size    = 0;
-unsigned long                    alsa_pcm_period_size    = 0;
-unsigned int                     alsa_pcm_format_bits    = 0;
-struct alsa_seq_info            *alsa_seq_info           = NULL;
-int                              alsa_seq_ports_changed  = 0;
-struct rawmidi_info              *rawmidi_info            = NULL;
-struct alsa_rawmidi_hw_info      *alsa_rawmidi_hw         = NULL;
-int                              alsa_rawmidi_hw_changed = 0;
-
-int
-alsa_pcm_init(void) {
-    return -1;
-}
-
-
-void *
-alsa_pcm_thread(void *arg) {
-    (void) arg;
-    return NULL;
-}
-
-
-void
-alsa_pcm_watchdog_cycle(void) {
-}
-
-
-struct alsa_pcm_hw_info *
-alsa_pcm_get_hw_list(int stream) {
-    (void) stream;
-    return NULL;
-}
-
-
-void
-alsa_pcm_hw_list_free(struct alsa_pcm_hw_info *hw_list) {
-    (void) hw_list;
-}
-
-
-int
-alsa_seq_init(void) {
-    return -1;
-}
-
-
-void *
-alsa_seq_thread(void *arg) {
-    (void) arg;
-    return NULL;
-}
-
-
-void
-alsa_seq_watchdog_cycle(void) {
-}
-
-
-struct alsa_seq_port *
-alsa_seq_get_port_list(struct alsa_seq_info *midi, unsigned int caps, struct alsa_seq_port *orig_list) {
-    (void) midi;
-    (void) caps;
-    (void) orig_list;
-    return NULL;
-}
-
-
-void
-alsa_seq_port_free(struct alsa_seq_port *portinfo) {
-    (void) portinfo;
-}
-
-
-int
-rawmidi_init(void) {
-    return -1;
-}
-
-
-void *
-rawmidi_thread(void *arg) {
-    (void) arg;
-    return NULL;
-}
-
-
-void
-rawmidi_watchdog_cycle(void) {
-}
-
-
-struct alsa_rawmidi_hw_info *
-alsa_rawmidi_get_hw_list(void) {
-    return NULL;
-}
-
-
-void
-alsa_rawmidi_hw_info_free(struct alsa_rawmidi_hw_info *hwinfo) {
-    (void) hwinfo;
-}
+/* Storage for settings.c-owned config globals alsa_pcm.c/alsa_seq.c/
+   rawmidi.c read directly -- see file header comment. Values match
+   settings.c's own defaults. The four device/port-name strings
+   (initially NULL, meaning "use the driver's own default") are set for
+   real by alsa_wiring.c when the user picks a specific device/port
+   from the ALSA menu. */
+char            *setting_alsa_pcm_device       = NULL;
+char            *setting_alsa_seq_port         = NULL;
+char            *setting_alsa_raw_midi_device  = NULL;
+char            *setting_oss_midi_device       = NULL;
+char            *setting_generic_midi_device   = NULL;
+int             setting_sample_rate            = DEFAULT_SAMPLE_RATE;
+unsigned int    setting_buffer_period_size     = DEFAULT_BUFFER_PERIOD_SIZE;
+int             setting_force_16bit            = 0;
+int             setting_enable_mmap            = 0;
+int             setting_enable_inputs          = 0;
+int             setting_audio_priority         = AUDIO_THREAD_PRIORITY;
+int             setting_midi_priority          = MIDI_THREAD_PRIORITY;
 
 
 /*****************************************************************************
  * phasex_gtk4_audio_init()
  *
- * Force-selects JACK for both audio and MIDI (this preview has no
- * config UI to choose a driver yet -- see menubar.c's ALSA/JACK device
- * menus, still read-only), then mirrors phasex.c's real main() sequence
+ * Force-selects JACK for both audio and MIDI at startup (this preview
+ * has no config file/dialog to remember a prior choice -- the user can
+ * still switch to ALSA PCM/sequencer/rawmidi afterward from the
+ * ALSA menu, see alsa_wiring.c), then mirrors phasex.c's real main()
+ * sequence
  * for everything sample-rate related: build the sample-rate-independent
  * lookup tables first, block until a real JACK connection supplies a
  * real sample rate (init_audio() internally retries JACK for ~3s, falls
