@@ -4,24 +4,31 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Real ALSA/JACK device and port enumeration, ported from
+ * Real ALSA device and port enumeration, ported from
  * alsa_pcm.c:alsa_pcm_get_hw_list(), alsa_seq.c:alsa_seq_get_port_list()
  * (plus gui_alsa.c:on_alsa_menu_activate()'s HW/SW split and PHASEX-
- * client filtering), rawmidi.c:alsa_rawmidi_get_hw_list(), and
- * jack.c:jack_get_midi_port_list().
+ * client filtering), and rawmidi.c:alsa_rawmidi_get_hw_list().
  *
  * Those files aren't linked into this preview -- alsa_pcm.c/alsa_seq.c/
- * rawmidi.c/jack.c each carry a lot of driver-lifecycle state
- * (capture/playback handles, watchdog threads, settings.c/driver.c
- * globals) that would need extensive stubbing to even link, the same
- * problem backend_init.c already documents for jack.c as a whole. The
- * actual enumeration logic doesn't touch any of that -- alsa_pcm_get_
- * hw_list()/alsa_rawmidi_get_hw_list() are self-contained (they open
- * their own per-card handles), and alsa_seq_get_port_list()/jack_get_
- * midi_port_list() only need a live snd_seq_t/jack_client_t handle,
- * which this file opens its own throwaway one for -- so the logic is
- * ported here directly against the real ALSA/JACK headers (already on
- * this target's include path, see CMakeLists.txt) instead.
+ * rawmidi.c each carry a lot of driver-lifecycle state (capture/
+ * playback handles, watchdog threads, settings.c/driver.c globals)
+ * that would need extensive stubbing to even link (see audio_init.c
+ * for the stand-ins their entry points still need even unlinked, since
+ * driver.c references them unconditionally). The actual enumeration
+ * logic doesn't touch any of that -- alsa_pcm_get_hw_list()/
+ * alsa_rawmidi_get_hw_list() are self-contained (they open their own
+ * per-card handles), and alsa_seq_get_port_list() only needs a live
+ * snd_seq_t handle, which this file opens its own throwaway one for --
+ * so the logic is ported here directly against the real ALSA headers
+ * (already on this target's include path, see CMakeLists.txt) instead.
+ *
+ * JACK MIDI ports used to be enumerated the same way here (a throwaway
+ * jack_client_t just to list ports), back when jack.c itself wasn't
+ * linked at all. Now that audio_init.c brings up real JACK audio/MIDI
+ * for real, jack.c is linked and already maintains its own real,
+ * connection-state-aware port list (jack_midi_ports) -- menubar.c's
+ * build_jack_menu() reads that directly instead, so there's no JACK
+ * enumeration left in this file.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +47,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <alsa/asoundlib.h>
-#include <jack/jack.h>
 #include "device_enum.h"
 
 
@@ -217,34 +223,3 @@ device_enum_alsa_seq_sw(void) {
 }
 
 
-/* Opens its own throwaway JACK client (JackNoStartServer: query
-   whatever's running, never launch a new jackd just to list ports) --
-   matches jack_get_midi_port_list()'s "any output MIDI port" query via
-   jack_get_ports(), simplified to pass JACK_DEFAULT_MIDI_TYPE straight
-   into jack_get_ports()'s type filter instead of the original's
-   separate jack_port_type()-per-port check. */
-GPtrArray *
-device_enum_jack_midi(void) {
-    GPtrArray       *result = g_ptr_array_new();
-    jack_client_t   *client;
-    jack_status_t   status;
-    const char      **port_names;
-    int             i;
-
-    client = jack_client_open("phasex-gtk4-preview-enum", JackNoStartServer, &status);
-    if (client == NULL) {
-        return result;
-    }
-
-    port_names = jack_get_ports(client, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput);
-    if (port_names != NULL) {
-        for (i = 0; port_names[i] != NULL; i++) {
-            g_ptr_array_add(result, g_strdup(port_names[i]));
-        }
-        free(port_names);
-    }
-
-    jack_client_close(client);
-
-    return result;
-}

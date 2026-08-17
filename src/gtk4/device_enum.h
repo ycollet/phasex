@@ -4,9 +4,10 @@
  *
  * PHASEX:  [P]hase [H]armonic [A]dvanced [S]ynthesis [EX]periment
  *
- * Real ALSA/JACK device and port enumeration for the GTK4 preview's
- * menubar, ported from alsa_pcm.c/alsa_seq.c/rawmidi.c/jack.c. See
- * device_enum.c for why those files aren't linked directly.
+ * Real ALSA device and port enumeration for the GTK4 preview's
+ * menubar, ported from alsa_pcm.c/alsa_seq.c/rawmidi.c. See
+ * device_enum.c for why those files aren't linked directly (and for
+ * why JACK MIDI port enumeration isn't here at all anymore).
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,12 +31,10 @@
 /* Each returns a newly-allocated GPtrArray of newly-allocated display
    strings (caller frees with g_ptr_array_free(arr, TRUE)) -- empty
    (never NULL) if none are found, or if the driver/library can't be
-   reached at all (e.g. no ALSA on this machine, no JACK server
-   running). */
+   reached at all (e.g. no ALSA on this machine). */
 GPtrArray *device_enum_alsa_pcm_playback(void);
 GPtrArray *device_enum_alsa_seq_hw(void);
 GPtrArray *device_enum_alsa_seq_sw(void);
 GPtrArray *device_enum_alsa_rawmidi(void);
-GPtrArray *device_enum_jack_midi(void);
 
 #endif /* _PHASEX_GTK4_DEVICE_ENUM_H_ */

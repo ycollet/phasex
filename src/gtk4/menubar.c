@@ -32,15 +32,27 @@
  * load/save (needs midimap.c, which isn't linked -- see backend_init.c
  * for why), and window-layout switching (View/Notebook|One Page|
  * WideScreen and the Fit WxH items are cosmetic here since main.c only
- * ever builds one fixed layout). ALSA and JACK now list real devices/
- * ports (device_enum.c), ported from alsa_pcm.c/alsa_seq.c/rawmidi.c/
- * jack.c's enumeration functions without linking those files whole --
- * each real device/port row is enabled (clicking is a no-op for now,
- * same as Reset Patch/Load MIDI Map above) since it carries real
- * information, not yet wired to a real connect/subscribe action
- * (gui_alsa.c's on_select_alsa_... family, gui_jack.c's on_select_
- * jack_midi_port). Only the "(none found)" fallback row is disabled --
- * that one really is just informational text, not a device.
+ * ever builds one fixed layout).
+ *
+ * ALSA and JACK list real devices/ports (device_enum.c), ported from
+ * alsa_pcm.c/alsa_seq.c/rawmidi.c's enumeration functions without
+ * linking those files whole. JACK MIDI ports are now really wired up
+ * (build_jack_menu() below): now that audio_init.c brings up a real
+ * JACK client with a real midi_input_port, each row is its own
+ * dynamically-created stateful boolean GAction, backed directly by
+ * jack.c's own jack_midi_ports list -- toggling one calls real
+ * jack_connect()/jack_disconnect() against the real jack_audio_client,
+ * the same pair gui_jack.c's on_select_jack_midi_port() calls (just
+ * synchronously instead of via a queued watchdog-cycle request, since
+ * this preview has no separate watchdog thread to defer to and
+ * jack_connect()/jack_disconnect() are safe to call from any thread).
+ * ALSA rows are still real-but-inert (clicking is a no-op, same as
+ * Reset Patch/Load MIDI Map above): connecting one for real would mean
+ * either a new ALSA sequencer/rawmidi input client (for the MIDI
+ * submenus) or actual driver-switching away from JACK (for PCM
+ * playback) -- both real, separate pieces of work, not yet done. Only
+ * the "(none found)" fallback rows are disabled -- those really are
+ * just informational text, not a device.
  *
  * PHASEX is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,6 +72,7 @@
 #include "menubar.h"
 #include "navbar.h"
 #include "device_enum.h"
+#include "jack.h"
 
 
 static void
@@ -104,6 +117,55 @@ on_all_notes_off(GSimpleAction *UNUSED_action, GVariant *UNUSED_param, gpointer 
     (void) UNUSED_param;
     (void) UNUSED_data;
     navbar_trigger_all_notes_off();
+}
+
+
+/* Frees the g_strdup()'d port name captured at menu-build time (see
+   build_jack_menu()) when the action itself is destroyed. */
+static void
+free_closure_data(gpointer data, GClosure *UNUSED_closure) {
+    (void) UNUSED_closure;
+    g_free(data);
+}
+
+
+/* One of these is created per real JACK MIDI port (build_jack_menu()),
+   each with its own dynamically-generated action name -- not a single
+   shared action -- since JACK MIDI connections aren't mutually
+   exclusive the way a radio group is: any number of ports can be
+   connected to midi_input_port at once, each needs its own independent
+   checkmark.
+   `data` is the port's name, captured as an owned copy rather than a
+   JACK_PORT_INFO* at menu-build time: jack.c's port/client registration
+   handlers rebuild the real jack_midi_ports list (freeing the old one)
+   whenever JACK ports change, so a captured pointer could dangle. Look
+   the port up by name against the *current* list instead, matching
+   gui_jack.c's on_select_jack_midi_port() semantics but performed
+   synchronously here (jack_connect()/jack_disconnect() are safe to call
+   from any thread, and this preview has no separate watchdog thread to
+   defer to the way the real app's jack_watchdog_cycle() does). */
+static void
+on_jack_midi_port_toggle(GSimpleAction *action, GVariant *UNUSED_param, gpointer data) {
+    const char      *port_name = (const char *) data;
+    JACK_PORT_INFO  *cur;
+
+    (void) UNUSED_param;
+
+    for (cur = jack_midi_ports; cur != NULL; cur = cur->next) {
+        if (g_strcmp0(cur->name, port_name) != 0) {
+            continue;
+        }
+        if (cur->connected) {
+            jack_disconnect(jack_audio_client, cur->name, jack_port_name(midi_input_port));
+        } else {
+            jack_connect(jack_audio_client, cur->name, jack_port_name(midi_input_port));
+        }
+        cur->connected = jack_port_connected_to(midi_input_port, cur->name) ? 1 : 0;
+        g_simple_action_set_state(action, g_variant_new_boolean(cur->connected ? TRUE : FALSE));
+        return;
+    }
+    /* Port disappeared since the menu was built (unplugged/closed) --
+       nothing to connect to, leave the action's state as it was. */
 }
 
 
@@ -204,14 +266,16 @@ static const GActionEntry win_actions[] = {
        just informational text, not a device. */
     { "alsa-placeholder", placeholder_action, NULL, NULL,  NULL },
     { "jack-placeholder", placeholder_action, NULL, NULL,  NULL },
-    /* Real device/port rows in those same submenus use these instead,
-       left enabled (like Reset Patch/Load MIDI Map above) since they
-       carry real information even though clicking one doesn't do
-       anything yet. A GMenuItem with a NULL action doesn't reliably
-       render at all in GtkPopoverMenuBar, so it still needs a real
-       action reference. */
+    /* Real ALSA rows use this instead, left enabled (like Reset Patch/
+       Load MIDI Map above) since they carry real information even
+       though clicking one doesn't do anything yet -- a GMenuItem with
+       a NULL action doesn't reliably render at all in
+       GtkPopoverMenuBar, so it still needs a real action reference.
+       Real JACK MIDI port rows don't use a shared action at all: each
+       gets its own dynamically-created stateful action instead (see
+       build_jack_menu()), since unlike this row, those are really
+       wired up now. */
     { "alsa-device-info", placeholder_action, NULL, NULL,  NULL },
-    { "jack-port-info",   placeholder_action, NULL, NULL,  NULL },
 };
 
 
@@ -346,6 +410,30 @@ build_midi_menu(void) {
 }
 
 
+/* GMenu item labels get mnemonic-parsed (a lone "_" underlines the
+   next character and is itself dropped from the rendered text) --
+   real device/port names routinely contain "_" (e.g. JACK's own
+   "midi_out"), so passing one straight through as a label silently
+   eats it: "dummy-midi-source:midi_out" rendered as "dummy-midi-
+   source:midiout" before this existed. Escape by doubling, the
+   standard GTK convention for a literal underscore. Caller frees the
+   result -- g_menu_append()/g_menu_item_new() copy the string into
+   the GMenuItem, so it doesn't need to outlive this call. */
+static char *
+escape_mnemonic_underscores(const char *label) {
+    GString     *escaped = g_string_new(NULL);
+    const char  *p;
+
+    for (p = label; *p != '\0'; p++) {
+        if (*p == '_') {
+            g_string_append_c(escaped, '_');
+        }
+        g_string_append_c(escaped, *p);
+    }
+    return g_string_free(escaped, FALSE);
+}
+
+
 /* Real ALSA/JACK enumeration (device_enum.c), one section per device/
    port category. Real entries use item_action (enabled); an empty
    category falls back to a single row using empty_action (disabled)
@@ -361,7 +449,10 @@ append_device_list_section(GMenu *menu, GPtrArray *devices, const char *empty_la
         g_menu_append(section, empty_label, empty_action);
     } else {
         for (i = 0; i < devices->len; i++) {
-            g_menu_append(section, g_ptr_array_index(devices, i), item_action);
+            char *label = escape_mnemonic_underscores(g_ptr_array_index(devices, i));
+
+            g_menu_append(section, label, item_action);
+            g_free(label);
         }
     }
     g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
@@ -387,12 +478,51 @@ build_alsa_menu(void) {
 }
 
 
+/* Unlike build_alsa_menu()'s categories (still real-but-inert, see the
+   file header comment), JACK MIDI ports are backed directly by jack.c's
+   own jack_midi_ports list -- already populated for real by
+   jack_audio_init() (audio_init.c's phasex_gtk4_audio_init(), called
+   well before create_menubar()) -- rather than device_enum.c's
+   throwaway-client enumeration, since jack_midi_ports already carries
+   real per-port `connected` state and is what jack_connect()/
+   jack_disconnect() actually need a name to act on. `actions` must
+   still be alive (create_menubar() unrefs its own reference only after
+   this returns) since each port's toggle action is registered into it
+   here, dynamically, one real GAction per port -- see
+   on_jack_midi_port_toggle() for why a single shared action won't do. */
 static GMenuModel *
-build_jack_menu(void) {
-    GMenu *menu = g_menu_new();
+build_jack_menu(GSimpleActionGroup *actions) {
+    GMenu           *menu    = g_menu_new();
+    GMenu           *section = g_menu_new();
+    JACK_PORT_INFO  *cur;
+    GSimpleAction   *action;
+    char            action_name[40];
+    char            win_action_name[48];
+    int             index = 0;
 
-    append_device_list_section(menu, device_enum_jack_midi(),
-            "(no JACK MIDI ports found -- is a JACK server running?)", "win.jack-placeholder", "win.jack-port-info");
+    if ((midi_driver == MIDI_DRIVER_JACK) && (jack_midi_ports != NULL)) {
+        for (cur = jack_midi_ports; cur != NULL; cur = cur->next, index++) {
+            char *label;
+
+            snprintf(action_name, sizeof(action_name), "jack-midi-port-%d", index);
+            action = g_simple_action_new_stateful(action_name, NULL,
+                    g_variant_new_boolean(cur->connected ? TRUE : FALSE));
+            g_signal_connect_data(action, "activate", G_CALLBACK(on_jack_midi_port_toggle),
+                    g_strdup(cur->name), free_closure_data, (GConnectFlags) 0);
+            g_action_map_add_action(G_ACTION_MAP(actions), G_ACTION(action));
+            g_object_unref(action);
+
+            snprintf(win_action_name, sizeof(win_action_name), "win.%s", action_name);
+            label = escape_mnemonic_underscores(cur->name);
+            g_menu_append(section, label, win_action_name);
+            g_free(label);
+        }
+    } else {
+        g_menu_append(section, "(no JACK MIDI ports found -- is a JACK server running?)",
+                "win.jack-placeholder");
+    }
+    g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
+    g_object_unref(section);
 
     return G_MENU_MODEL(menu);
 }
@@ -413,6 +543,7 @@ create_menubar(GtkWindow *window) {
     GMenu               *menubar = g_menu_new();
     GSimpleActionGroup  *actions = g_simple_action_group_new();
     GtkWidget           *bar;
+    GMenuModel          *jack_menu;
 
     g_action_map_add_action_entries(G_ACTION_MAP(actions), win_actions,
                                     G_N_ELEMENTS(win_actions), window);
@@ -424,6 +555,10 @@ create_menubar(GtkWindow *window) {
             G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(actions), "alsa-placeholder")), FALSE);
     g_simple_action_set_enabled(
             G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(actions), "jack-placeholder")), FALSE);
+
+    /* Registers one real GAction per JACK MIDI port into `actions`, so
+       must run before it's unreffed below -- see build_jack_menu(). */
+    jack_menu = build_jack_menu(actions);
     g_object_unref(actions);
 
     g_menu_append_submenu(menubar, "File", build_file_menu());
@@ -431,7 +566,7 @@ create_menubar(GtkWindow *window) {
     g_menu_append_submenu(menubar, "Patch", build_patch_menu());
     g_menu_append_submenu(menubar, "MIDI", build_midi_menu());
     g_menu_append_submenu(menubar, "ALSA", build_alsa_menu());
-    g_menu_append_submenu(menubar, "JACK", build_jack_menu());
+    g_menu_append_submenu(menubar, "JACK", jack_menu);
     g_menu_append_submenu(menubar, "Help", build_help_menu());
 
     bar = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(menubar));
