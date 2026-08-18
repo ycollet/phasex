@@ -11,8 +11,16 @@ window {
     color: #c0c0c0;
 }
 
+/* Relying on the active GTK theme's own default frame styling (no
+   explicit border set at all here before) meant the frame's border
+   rendered fine on themes that happen to draw one by default (e.g. the
+   Homebrew Adwaita build used for local dev) and rendered as no border
+   at all on themes that don't (reported from real Linux testing: no
+   visible frame around the navbar or any param group). Setting it
+   explicitly makes it look the same everywhere. */
 .patch-group {
     background-color: #000018;
+    border: 1px solid #4b4b63;
 }
 
 .patch-group-content {
@@ -51,6 +59,7 @@ window {
 
 .param-group-frame {
     background-color: #000018;
+    border: 1px solid #4b4b63;
 }
 
 .param-name {
